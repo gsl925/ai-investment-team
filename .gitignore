@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+.pytest_cache/
+.test_tmp/
+*.pyc
+*.pyo
+
+# SQLite
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Secrets & local config
+settings.json
+.env
+.env.local
+
+# Claude Code local settings
+.claude/
+
+# Generated data (may contain local paths or large binaries)
+external_data/
+runtime_db/
+research_exports/
+
+# Internal dev logs (not for public repo)
+PROGRESS.md
+*.log
+tmp_*.js
+tmp_*.py
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

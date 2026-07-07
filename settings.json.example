@@ -1,0 +1,16 @@
+{
+  "llm": {
+    "enabled": false,
+    "provider": "anthropic",
+    "anthropic": {
+      "api_key": "YOUR_ANTHROPIC_API_KEY",
+      "model": "claude-haiku-4-5-20251001"
+    },
+    "openai": {
+      "api_key": "YOUR_OPENAI_API_KEY",
+      "model": "gpt-4o-mini"
+    },
+    "max_tokens": 1500,
+    "temperature": 0
+  }
+}

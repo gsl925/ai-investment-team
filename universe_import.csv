@@ -1,0 +1,168 @@
+symbol,name,asset_type,currency,sector,industry,enabled
+MRK,Merck & Co.,美股/ETF,USD,Health Care,Pharmaceuticals,1
+PM,Philip Morris International,美股/ETF,USD,Consumer Staples,Tobacco,1
+NEE,NextEra Energy,美股/ETF,USD,Utilities,Electric Utilities,1
+RTX,RTX Corp.,美股/ETF,USD,Industrials,Aerospace & Defense,1
+HON,Honeywell International,美股/ETF,USD,Industrials,Industrial Conglomerates,1
+LOW,Lowe's Companies,美股/ETF,USD,Consumer Discretionary,Home Improvement Retail,1
+UPS,United Parcel Service,美股/ETF,USD,Industrials,Air Freight & Logistics,1
+MS,Morgan Stanley,美股/ETF,USD,Financials,Capital Markets,1
+GS,Goldman Sachs,美股/ETF,USD,Financials,Capital Markets,1
+BLK,BlackRock,美股/ETF,USD,Financials,Asset Management,1
+SCHW,Charles Schwab,美股/ETF,USD,Financials,Capital Markets,1
+C,Citigroup,美股/ETF,USD,Financials,Banks,1
+CB,Chubb,美股/ETF,USD,Financials,Insurance,1
+SPGI,S&P Global,美股/ETF,USD,Financials,Financial Exchanges & Data,1
+DE,Deere & Co.,美股/ETF,USD,Industrials,Machinery,1
+BA,Boeing,美股/ETF,USD,Industrials,Aerospace & Defense,1
+MDT,Medtronic,美股/ETF,USD,Health Care,Health Care Equipment,1
+ISRG,Intuitive Surgical,美股/ETF,USD,Health Care,Health Care Equipment,1
+SYK,Stryker,美股/ETF,USD,Health Care,Health Care Equipment,1
+GILD,Gilead Sciences,美股/ETF,USD,Health Care,Biotechnology,1
+AMGN,Amgen,美股/ETF,USD,Health Care,Biotechnology,1
+BKNG,Booking Holdings,美股/ETF,USD,Consumer Discretionary,Travel Services,1
+SBUX,Starbucks,美股/ETF,USD,Consumer Discretionary,Restaurants,1
+NKE,Nike,美股/ETF,USD,Consumer Discretionary,Apparel,1
+LRCX,Lam Research,美股/ETF,USD,Information Technology,Semiconductor Equipment,1
+KLAC,KLA Corp.,美股/ETF,USD,Information Technology,Semiconductor Equipment,1
+PANW,Palo Alto Networks,美股/ETF,USD,Information Technology,Cybersecurity,1
+ADP,Automatic Data Processing,美股/ETF,USD,Industrials,Human Resources Software,1
+ELV,Elevance Health,美股/ETF,USD,Health Care,Managed Health Care,1
+CVS,CVS Health,美股/ETF,USD,Health Care,Health Care Services,1
+CI,Cigna Group,美股/ETF,USD,Health Care,Managed Health Care,1
+MO,Altria Group,美股/ETF,USD,Consumer Staples,Tobacco,1
+T,AT&T,美股/ETF,USD,Communication Services,Telecom,1
+CMCSA,Comcast,美股/ETF,USD,Communication Services,Cable & Media,1
+TMUS,T-Mobile US,美股/ETF,USD,Communication Services,Wireless Telecom,1
+CVX,Chevron,美股/ETF,USD,Energy,Integrated Oil & Gas,1
+COP,ConocoPhillips,美股/ETF,USD,Energy,Oil & Gas Exploration,1
+EOG,EOG Resources,美股/ETF,USD,Energy,Oil & Gas Exploration,1
+SLB,Schlumberger,美股/ETF,USD,Energy,Oilfield Services,1
+MPC,Marathon Petroleum,美股/ETF,USD,Energy,Refining,1
+PSX,Phillips 66,美股/ETF,USD,Energy,Refining,1
+APD,Air Products and Chemicals,美股/ETF,USD,Materials,Industrial Gases,1
+SHW,Sherwin-Williams,美股/ETF,USD,Materials,Specialty Chemicals,1
+NEM,Newmont,美股/ETF,USD,Materials,Gold Mining,1
+FCX,Freeport-McMoRan,美股/ETF,USD,Materials,Copper Mining,1
+DUK,Duke Energy,美股/ETF,USD,Utilities,Electric Utilities,1
+SO,Southern Company,美股/ETF,USD,Utilities,Electric Utilities,1
+EXC,Exelon,美股/ETF,USD,Utilities,Electric Utilities,1
+PLD,Prologis,美股/ETF,USD,Real Estate,Industrial REIT,1
+AMT,American Tower,美股/ETF,USD,Real Estate,Telecom REIT,1
+EQIX,Equinix,美股/ETF,USD,Real Estate,Data Center REIT,1
+O,Realty Income,美股/ETF,USD,Real Estate,Net Lease REIT,1
+REGN,Regeneron Pharmaceuticals,美股/ETF,USD,Health Care,Biotechnology,1
+VRTX,Vertex Pharmaceuticals,美股/ETF,USD,Health Care,Biotechnology,1
+ZTS,Zoetis,美股/ETF,USD,Health Care,Animal Health,1
+HCA,HCA Healthcare,美股/ETF,USD,Health Care,Health Care Facilities,1
+BSX,Boston Scientific,美股/ETF,USD,Health Care,Health Care Equipment,1
+ADI,Analog Devices,美股/ETF,USD,Information Technology,Semiconductors,1
+MRVL,Marvell Technology,美股/ETF,USD,Information Technology,Semiconductors,1
+MCHP,Microchip Technology,美股/ETF,USD,Information Technology,Semiconductors,1
+SNPS,Synopsys,美股/ETF,USD,Information Technology,Software,1
+CDNS,Cadence Design Systems,美股/ETF,USD,Information Technology,Software,1
+FTNT,Fortinet,美股/ETF,USD,Information Technology,Cybersecurity,1
+WDAY,Workday,美股/ETF,USD,Information Technology,Software,1
+TEAM,Atlassian,美股/ETF,USD,Information Technology,Software,1
+SHOP,Shopify,美股/ETF,USD,Information Technology,E-Commerce Software,1
+SNOW,Snowflake,美股/ETF,USD,Information Technology,Data Cloud,1
+NET,Cloudflare,美股/ETF,USD,Information Technology,Cloud Infrastructure,1
+CRWD,CrowdStrike,美股/ETF,USD,Information Technology,Cybersecurity,1
+DDOG,Datadog,美股/ETF,USD,Information Technology,Observability Software,1
+ZS,Zscaler,美股/ETF,USD,Information Technology,Cybersecurity,1
+MDB,MongoDB,美股/ETF,USD,Information Technology,Database Software,1
+COIN,Coinbase,美股/ETF,USD,Financials,Crypto Exchange,1
+HOOD,Robinhood Markets,美股/ETF,USD,Financials,Brokerage,1
+RBLX,Roblox,美股/ETF,USD,Communication Services,Interactive Entertainment,1
+ABNB,Airbnb,美股/ETF,USD,Consumer Discretionary,Travel Services,1
+DASH,DoorDash,美股/ETF,USD,Consumer Discretionary,Delivery Platforms,1
+RIVN,Rivian Automotive,美股/ETF,USD,Consumer Discretionary,Electric Vehicles,1
+LCID,Lucid Group,美股/ETF,USD,Consumer Discretionary,Electric Vehicles,1
+F,Ford Motor,美股/ETF,USD,Consumer Discretionary,Automobiles,1
+GM,General Motors,美股/ETF,USD,Consumer Discretionary,Automobiles,1
+TM,Toyota Motor ADR,美股/ETF,USD,Consumer Discretionary,Automobiles,1
+BABA,Alibaba ADR,美股/ETF,USD,Consumer Discretionary,E-Commerce,1
+TSM,Taiwan Semiconductor ADR,美股/ETF,USD,Information Technology,Semiconductors,1
+ASML,ASML Holding ADR,美股/ETF,USD,Information Technology,Semiconductor Equipment,1
+ARM,Arm Holdings ADR,美股/ETF,USD,Information Technology,Semiconductor IP,1
+IBB,iShares Biotechnology ETF,美股/ETF,USD,ETF,Biotechnology ETF,1
+XBI,SPDR S&P Biotech ETF,美股/ETF,USD,ETF,Biotechnology ETF,1
+KRE,SPDR S&P Regional Banking ETF,美股/ETF,USD,ETF,Regional Banks ETF,1
+XRT,SPDR S&P Retail ETF,美股/ETF,USD,ETF,Retail ETF,1
+XHB,SPDR S&P Homebuilders ETF,美股/ETF,USD,ETF,Homebuilders ETF,1
+ITB,iShares U.S. Home Construction ETF,美股/ETF,USD,ETF,Home Construction ETF,1
+IYR,iShares U.S. Real Estate ETF,美股/ETF,USD,ETF,Real Estate ETF,1
+JETS,U.S. Global Jets ETF,美股/ETF,USD,ETF,Airlines ETF,1
+TAN,Invesco Solar ETF,美股/ETF,USD,ETF,Solar ETF,1
+ICLN,iShares Global Clean Energy ETF,美股/ETF,USD,ETF,Clean Energy ETF,1
+BOTZ,Global X Robotics & AI ETF,美股/ETF,USD,ETF,Robotics ETF,1
+AIQ,Global X Artificial Intelligence & Technology ETF,美股/ETF,USD,ETF,AI ETF,1
+URA,Global X Uranium ETF,美股/ETF,USD,ETF,Uranium ETF,1
+PAVE,Global X U.S. Infrastructure ETF,美股/ETF,USD,ETF,Infrastructure ETF,1
+VEA,Vanguard FTSE Developed Markets ETF,美股/ETF,USD,ETF,Developed Markets ETF,1
+VWO,Vanguard FTSE Emerging Markets ETF,美股/ETF,USD,ETF,Emerging Markets ETF,1
+EWT,iShares MSCI Taiwan ETF,美股/ETF,USD,ETF,Taiwan ETF,1
+EWJ,iShares MSCI Japan ETF,美股/ETF,USD,ETF,Japan ETF,1
+MCHI,iShares MSCI China ETF,美股/ETF,USD,ETF,China ETF,1
+INDA,iShares MSCI India ETF,美股/ETF,USD,ETF,India ETF,1
+FXI,iShares China Large-Cap ETF,美股/ETF,USD,ETF,China Large Cap ETF,1
+1101.TW,台泥,台股,TWD,水泥,水泥,1
+1102.TW,亞泥,台股,TWD,水泥,水泥,1
+1216.TW,統一,台股,TWD,食品,食品,1
+1402.TW,遠東新,台股,TWD,紡織,紡織,1
+1590.TW,亞德客-KY,台股,TWD,電機機械,自動化,1
+1605.TW,華新,台股,TWD,電器電纜,線纜,1
+2409.TW,友達,台股,TWD,光電,面板,1
+2474.TW,可成,台股,TWD,電子零組件,機殼,1
+2801.TW,彰銀,台股,TWD,金融,銀行,1
+2912.TW,統一超,台股,TWD,貿易百貨,超商,1
+3017.TW,奇鋐,台股,TWD,電子零組件,散熱,1
+3231.TW,緯創,台股,TWD,電腦週邊,代工,1
+3661.TW,世芯-KY,台股,TWD,半導體,IC設計,1
+5269.TW,祥碩,台股,TWD,半導體,IC設計,1
+6415.TW,矽力*-KY,台股,TWD,半導體,電源管理IC,1
+6488.TW,環球晶,台股,TWD,半導體,矽晶圓,1
+6770.TW,力積電,台股,TWD,半導體,晶圓代工,1
+3533.TW,嘉澤,台股,TWD,電子零組件,連接器,1
+3653.TW,健策,台股,TWD,電子零組件,散熱,1
+2376.TW,技嘉,台股,TWD,電腦週邊,主機板,1
+2377.TW,微星,台股,TWD,電腦週邊,主機板,1
+2383.TW,台光電,台股,TWD,電子零組件,CCL,1
+3189.TW,景碩,台股,TWD,電子零組件,載板,1
+3037.TW,欣興,台股,TWD,電子零組件,載板,1
+3443.TW,創意,台股,TWD,半導體,ASIC,1
+3529.TW,力旺,台股,TWD,半導體,IP,1
+6409.TW,旭隼,台股,TWD,電子零組件,UPS,1
+9910.TW,豐泰,台股,TWD,運動用品,鞋材,1
+9914.TW,美利達,台股,TWD,運動用品,自行車,1
+8464.TW,億豐,台股,TWD,居家生活,窗簾,1
+9945.TW,潤泰新,台股,TWD,營建,營建,1
+9941.TW,裕融,台股,TWD,金融,租賃,1
+5876.TW,上海商銀,台股,TWD,金融,銀行,1
+2892.TW,第一金,台股,TWD,金融,金控,1
+2883.TW,開發金,台股,TWD,金融,金控,1
+2890.TW,永豐金,台股,TWD,金融,金控,1
+2887.TW,台新金,台股,TWD,金融,金控,1
+2888.TW,新光金,台股,TWD,金融,金控,1
+00940.TW,元大台灣價值高息,台股,TWD,ETF,高股息ETF,1
+00939.TW,統一台灣高息動能,台股,TWD,ETF,高股息ETF,1
+00923.TW,群益台ESG低碳50,台股,TWD,ETF,台股ETF,1
+00713.TW,元大台灣高息低波,台股,TWD,ETF,台股ETF,1
+00757.TW,統一FANG+,台股,TWD,ETF,海外ETF,1
+00662.TW,富邦NASDAQ,台股,TWD,ETF,海外ETF,1
+00646.TW,元大S&P500,台股,TWD,ETF,海外ETF,1
+MATIC-USD,Polygon USD,虛擬貨幣,USD,Crypto,Layer 2,1
+ARB-USD,Arbitrum USD,虛擬貨幣,USD,Crypto,Layer 2,1
+OP-USD,Optimism USD,虛擬貨幣,USD,Crypto,Layer 2,1
+APT-USD,Aptos USD,虛擬貨幣,USD,Crypto,Layer 1,1
+SUI-USD,Sui USD,虛擬貨幣,USD,Crypto,Layer 1,1
+ICP-USD,Internet Computer USD,虛擬貨幣,USD,Crypto,Layer 1,1
+INJ-USD,Injective USD,虛擬貨幣,USD,Crypto,DeFi,1
+RNDR-USD,Render USD,虛擬貨幣,USD,Crypto,AI Infrastructure,1
+MKR-USD,Maker USD,虛擬貨幣,USD,Crypto,DeFi,1
+LDO-USD,Lido DAO USD,虛擬貨幣,USD,Crypto,Staking,1
+RUNE-USD,THORChain USD,虛擬貨幣,USD,Crypto,DeFi,1
+FTM-USD,Fantom USD,虛擬貨幣,USD,Crypto,Layer 1,1
+GRT-USD,The Graph USD,虛擬貨幣,USD,Crypto,Data,1
+ALGO-USD,Algorand USD,虛擬貨幣,USD,Crypto,Layer 1,1
+VET-USD,VeChain USD,虛擬貨幣,USD,Crypto,Enterprise Chain,1

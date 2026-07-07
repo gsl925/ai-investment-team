@@ -1,0 +1,3353 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>投資建議小幫手</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f8;
+      --panel: #ffffff;
+      --ink: #18202a;
+      --muted: #66717f;
+      --line: #dce1e7;
+      --accent: #0f7f6e;
+      --accent-soft: #dff3ef;
+      --warn: #a15c05;
+      --bad: #b73535;
+      --good: #087b4e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Noto Sans TC", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      letter-spacing: 0;
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #ffffff;
+    }
+    .wrap {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+    .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 68px;
+      gap: 16px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.2;
+    }
+    .stamp {
+      color: var(--muted);
+      font-size: 13px;
+      text-align: right;
+    }
+    main {
+      padding: 22px 0 36px;
+    }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .tabs button {
+      min-height: 38px;
+    }
+    .tabs button.active {
+      background: var(--accent);
+      color: #fff;
+    }
+    .page { display: none; }
+    .page.active { display: block; }
+    .daily-table-wrap { overflow-x: auto; }
+    table.daily-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    table.daily-table th, table.daily-table td {
+      padding: 7px 9px;
+      border-bottom: 1px solid var(--line);
+      text-align: right;
+      white-space: nowrap;
+    }
+    table.daily-table th { color: var(--muted); font-weight: 650; text-align: right; }
+    table.daily-table th:nth-child(-n+3), table.daily-table td:nth-child(-n+3) { text-align: left; }
+    table.daily-table td.thesis { text-align: left; white-space: normal; min-width: 220px; color: var(--muted); }
+    table.daily-table tbody tr:hover { background: var(--accent-soft); }
+    table.daily-table .sym-link { color: var(--accent); cursor: pointer; font-weight: 650; }
+    .tier-pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; }
+    .tier-core { background: var(--accent-soft); color: var(--accent); }
+    .tier-research { background: #eef1f4; color: var(--ink); }
+    .audit-pass { color: var(--accent); }
+    .audit-warn { color: #b5760a; }
+    .audit-block { color: #c0392b; }
+    .pos { color: var(--accent); }
+    .neg { color: #c0392b; }
+    .trend-row { display: grid; grid-template-columns: 92px 1fr 132px; gap: 10px; align-items: center; padding: 4px 0; }
+    .trend-bar { background: var(--accent); height: 16px; border-radius: 4px; min-width: 2px; }
+    .trend-bar-track { background: #eef1f4; border-radius: 4px; }
+    .trend-meta { color: var(--muted); font-size: 12px; }
+    .spark { font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+    .persist-row { align-items: start; }
+    .ca-row td { opacity: 0.55; }
+    .perf-notice { font-size: 12px; color: var(--muted); background: #fafafa; border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; margin-bottom: 8px; line-height: 1.6; }
+    .persist-val { color: var(--good); }
+    .attr-section { margin: 12px 0 8px; }
+    .attr-title { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+    .attr-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+    .attr-block { min-width: 180px; flex: 1 1 180px; }
+    .attr-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+    .attr-table { font-size: 12px; }
+    .attr-table td, .attr-table th { padding: 4px 7px; }
+    .alert-row { display: grid; grid-template-columns: 110px 100px 80px 1fr; gap: 8px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+    .alert-row:last-child { border-bottom: none; }
+    .alert-up { color: var(--accent); font-weight: 650; }
+    .alert-down { color: #c0392b; font-weight: 650; }
+    .alert-empty { color: var(--muted); font-size: 12px; padding: 12px 0; }
+    .persist-score { font-size: 20px; color: var(--accent); font-variant-numeric: tabular-nums; }
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 14px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    .input-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto auto;
+      gap: 10px;
+    }
+    input {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 0 12px;
+      font-size: 15px;
+      color: var(--ink);
+      background: #fff;
+    }
+    button {
+      min-height: 42px;
+      border: 0;
+      border-radius: 6px;
+      padding: 0 16px;
+      font-size: 14px;
+      font-weight: 650;
+      cursor: pointer;
+      color: #fff;
+      background: var(--accent);
+      white-space: nowrap;
+    }
+    button.secondary {
+      color: var(--ink);
+      background: #eef1f4;
+      border: 1px solid var(--line);
+    }
+    button:disabled {
+      opacity: .65;
+      cursor: wait;
+    }
+    .quick {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    .quick button {
+      min-height: 34px;
+      padding: 0 10px;
+      font-size: 13px;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+    .backtest-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 14px;
+      display: none;
+      gap: 12px;
+    }
+    .backtest-panel.active {
+      display: grid;
+    }
+    .backtest-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .backtest-head h2 {
+      margin: 0;
+      font-size: 17px;
+    }
+    .backtest-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 10px;
+    }
+    .backtest-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+    .backtest-card strong {
+      font-size: 17px;
+    }
+    .backtest-metrics {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    .research-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 14px;
+      display: none;
+      gap: 12px;
+    }
+    .research-panel.active {
+      display: grid;
+    }
+    .scan-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 14px;
+      display: grid;
+      gap: 12px;
+    }
+    .scheduler-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 14px;
+      display: grid;
+      gap: 12px;
+    }
+    .scan-controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) auto;
+      gap: 10px;
+      align-items: end;
+    }
+    .select, select {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 0 10px;
+      background: #fff;
+      color: var(--ink);
+      font-size: 14px;
+    }
+    .opportunity-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+    }
+    .audit-list {
+      display: grid;
+      gap: 10px;
+    }
+    .audit-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+      display: grid;
+      gap: 8px;
+    }
+    .audit-card header {
+      border: 0;
+      background: transparent;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: start;
+    }
+    .audit-card h3 {
+      margin: 0;
+      font-size: 15px;
+    }
+    .audit-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .attempt-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .opportunity-card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 5px solid var(--accent);
+      border-radius: 8px;
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+    .opportunity-card.high { border-left-color: var(--bad); }
+    .opportunity-card.medium { border-left-color: var(--warn); }
+    .priority {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background: var(--accent);
+      font-weight: 760;
+      text-align: center;
+      line-height: 1.1;
+      padding: 6px;
+    }
+    .priority span {
+      display: block;
+      font-size: 20px;
+    }
+    .priority small {
+      display: block;
+      font-size: 11px;
+      font-weight: 650;
+    }
+    .research-grid {
+      display: grid;
+      gap: 12px;
+    }
+    .research-symbol {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+    .agent-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+    }
+    .agent-card {
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+      background: #fff;
+    }
+    .agent-card h3 {
+      margin: 0;
+      font-size: 14px;
+    }
+    .agent-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .llm-insight {
+      margin-top: 8px;
+      padding: 8px 10px;
+      background: #f0f9ff;
+      border-left: 3px solid #0ea5e9;
+      border-radius: 4px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #0c4a6e;
+    }
+    .llm-insight.llm-error {
+      background: #fff7ed;
+      border-left-color: #f97316;
+      color: #7c2d12;
+    }
+    .llm-badge {
+      display: inline-block;
+      background: #0ea5e9;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 3px;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .llm-error .llm-badge { background: #f97316; }
+    .agent-card ul {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--ink);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .control {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 34px;
+    }
+    .control input[type="number"] {
+      width: 78px;
+      min-height: 34px;
+      padding: 0 8px;
+      font-size: 13px;
+    }
+    .control input[type="checkbox"] {
+      width: 16px;
+      min-height: 16px;
+      accent-color: var(--accent);
+    }
+    .status {
+      min-height: 24px;
+      color: var(--muted);
+      font-size: 14px;
+      margin: 8px 2px 14px;
+    }
+    .dashboard {
+      display: grid;
+      grid-template-columns: minmax(280px, 420px) 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    .monitor {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+      position: sticky;
+      top: 12px;
+    }
+    .monitor h2 {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.2;
+    }
+    .alert-list {
+      display: grid;
+      gap: 8px;
+    }
+    .alert {
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--muted);
+      border-radius: 6px;
+      padding: 9px;
+      background: #fff;
+    }
+    .alert.high { border-left-color: var(--bad); }
+    .alert.medium { border-left-color: var(--warn); }
+    .alert.info { border-left-color: var(--accent); }
+    .alert b {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+    .alert p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .monitor-meta {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 14px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+      min-width: 0;
+    }
+    .card-head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: start;
+    }
+    .symbol {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .symbol strong {
+      font-size: 18px;
+    }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: #eef1f4;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+    }
+    .name {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 3px;
+      overflow-wrap: anywhere;
+    }
+    .score {
+      width: 74px;
+      height: 74px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: conic-gradient(var(--accent) calc(var(--value) * 1%), #e6eaee 0);
+      position: relative;
+      font-size: 19px;
+      font-weight: 760;
+    }
+    .score::before {
+      content: "";
+      position: absolute;
+      inset: 7px;
+      border-radius: 50%;
+      background: #fff;
+    }
+    .score span {
+      position: relative;
+    }
+    .action {
+      border-left: 4px solid var(--accent);
+      padding: 8px 10px;
+      background: var(--accent-soft);
+      border-radius: 4px;
+    }
+    .action b {
+      display: block;
+      margin-bottom: 3px;
+    }
+    .action p, .risk p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .factor-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .factor {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px;
+      min-width: 0;
+      background: #fbfcfd;
+    }
+    .factor span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+    .factor b {
+      font-size: 15px;
+      overflow-wrap: anywhere;
+    }
+    .factor small {
+      color: var(--muted);
+      display: block;
+      margin-top: 2px;
+      font-size: 11px;
+    }
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px;
+      min-width: 0;
+    }
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+    .metric b {
+      font-size: 14px;
+      overflow-wrap: anywhere;
+    }
+    .kline-chart {
+      width: 100%;
+      display: block;
+      border-radius: 4px;
+      border: 1px solid var(--line);
+    }
+    .industry-cmp {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px 12px;
+      background: var(--bg);
+    }
+    .industry-cmp h4 {
+      margin: 0 0 8px;
+      font-size: 13px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .icmp-metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .icmp-metric {
+      background: var(--card-bg, #fff);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 5px 7px;
+      font-size: 12px;
+    }
+    .icmp-metric span {
+      display: block;
+      color: var(--muted);
+      margin-bottom: 2px;
+    }
+    .icmp-metric b { font-size: 13px; }
+    .icmp-pct {
+      display: inline-block;
+      font-size: 11px;
+      padding: 1px 5px;
+      border-radius: 10px;
+      margin-left: 4px;
+      font-weight: 600;
+    }
+    .icmp-pct.high { background: #fee2e2; color: #b91c1c; }
+    .icmp-pct.low  { background: #dbeafe; color: #1d4ed8; }
+    .icmp-pct.mid  { background: #f3f4f6; color: #6b7280; }
+    .icmp-insights {
+      margin-bottom: 8px;
+      display: grid;
+      gap: 4px;
+    }
+    .icmp-insight {
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      border-left: 3px solid;
+    }
+    .icmp-insight.high { border-color: #ef4444; background: #fef2f2; }
+    .icmp-insight.low  { border-color: #3b82f6; background: #eff6ff; }
+    .icmp-table-wrap { overflow-x: auto; }
+    .icmp-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .icmp-table th, .icmp-table td {
+      text-align: right;
+      padding: 4px 6px;
+      border-bottom: 1px solid var(--line);
+      white-space: nowrap;
+    }
+    .icmp-table th { color: var(--muted); font-weight: 500; }
+    .icmp-table td:first-child, .icmp-table th:first-child { text-align: left; }
+    .icmp-table tr.is-target td { font-weight: 600; background: #fffbeb; }
+    .icmp-load-btn {
+      font-size: 12px;
+      padding: 4px 10px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      background: transparent;
+      cursor: pointer;
+      color: var(--muted);
+    }
+    .icmp-load-btn:hover { background: var(--line); }
+    .mev {
+      border-radius: 6px;
+      padding: 10px 12px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      display: grid;
+      gap: 7px;
+    }
+    .mev-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .mev-cls {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .mev-cls.market_wide { background: #e0f2fe; color: #0369a1; }
+    .mev-cls.sector_rotation { background: #fef9c3; color: #854d0e; }
+    .mev-cls.mixed { background: #f3e8ff; color: #7e22ce; }
+    .mev-cls.sector_partial { background: #fff7ed; color: #9a3412; }
+    .mev-cls.stock_specific { background: #fce7f3; color: #9d174d; }
+    .mev-cls.unknown { background: #f3f4f6; color: #6b7280; }
+    .mev-conf { font-size: 11px; color: var(--muted); }
+    .mev-row {
+      display: grid;
+      grid-template-columns: 60px 1fr;
+      gap: 6px;
+      font-size: 12px;
+      border-top: 1px solid var(--line);
+      padding-top: 6px;
+      align-items: start;
+    }
+    .mev-row-label { color: var(--muted); font-weight: 500; padding-top: 1px; }
+    .mev-summary {
+      font-size: 12px;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+      padding-top: 6px;
+      line-height: 1.5;
+    }
+    .signals {
+      display: grid;
+      gap: 7px;
+    }
+    .signal {
+      display: grid;
+      grid-template-columns: 78px 1fr auto;
+      gap: 8px;
+      align-items: start;
+      border-top: 1px solid var(--line);
+      padding-top: 8px;
+    }
+    .signal small {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .signal b {
+      font-size: 13px;
+    }
+    .impact {
+      font-weight: 760;
+      color: var(--muted);
+    }
+    .impact.good { color: var(--good); }
+    .impact.bad { color: var(--bad); }
+    .news {
+      display: grid;
+      gap: 8px;
+    }
+    .news a {
+      display: block;
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .news a:hover { text-decoration: underline; }
+    .news small {
+      color: var(--muted);
+      display: block;
+      margin-top: 2px;
+    }
+    .risk {
+      border: 1px solid #f0d6ab;
+      background: #fff8ea;
+      border-radius: 6px;
+      padding: 9px;
+    }
+    .risk b {
+      color: var(--warn);
+      display: block;
+      margin-bottom: 4px;
+    }
+    .catalyst {
+      border: 1px solid #cce4df;
+      background: #f1faf8;
+      border-radius: 6px;
+      padding: 9px;
+      display: grid;
+      gap: 7px;
+    }
+    .catalyst b {
+      color: var(--accent);
+      font-size: 13px;
+    }
+    .catalyst a {
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .catalyst a:hover { text-decoration: underline; }
+    .catalyst small {
+      color: var(--muted);
+      display: block;
+      margin-top: 2px;
+    }
+    .empty {
+      padding: 36px 16px;
+      text-align: center;
+      color: var(--muted);
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    @media (max-width: 780px) {
+      .top, .toolbar, .input-row {
+        grid-template-columns: 1fr;
+      }
+      .top {
+        display: grid;
+        align-items: start;
+        padding: 14px 0;
+      }
+      .stamp {
+        text-align: left;
+      }
+      .quick {
+        justify-content: flex-start;
+      }
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      .dashboard {
+        grid-template-columns: 1fr;
+      }
+      .monitor {
+        position: static;
+      }
+      .metrics {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .factor-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .signal {
+        grid-template-columns: 72px 1fr;
+      }
+      .impact {
+        grid-column: 2;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap top">
+      <h1>投資建議小幫手</h1>
+      <div class="stamp" id="stamp">資料來源：Yahoo Finance、Google News RSS</div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <nav class="tabs" aria-label="頁面切換">
+      <button class="secondary active" data-page="latestPage">最新進度</button>
+      <button class="secondary" data-page="scanPage">市場雷達</button>
+      <button class="secondary" data-page="activeEtfPage">主動式 ETF 異動</button>
+      <button class="secondary" data-page="manualPage">手動投研</button>
+      <button class="secondary" data-page="dailyPage">每日推薦</button>
+    </nav>
+
+    <section id="latestPage" class="page active">
+      <section class="scan-panel">
+        <div class="backtest-head">
+          <h2>最新投研進度</h2>
+          <div id="latestMeta" class="monitor-meta">讀取背景輪巡與最新推薦中...</div>
+          <button id="aegisRefresh" class="secondary">刷新 Aegis 快照</button>
+          <button id="dailyRecommend">執行每日推薦</button>
+        </div>
+        <div id="latestHealth" class="backtest-grid">
+          <div class="empty">尚未載入</div>
+        </div>
+        <div id="dataHealthMeta" class="monitor-meta">讀取資料健康狀態中...</div>
+        <div id="dataHealthSummary" class="backtest-grid">
+          <div class="empty">Loading</div>
+        </div>
+      </section>
+      <section class="scan-panel">
+        <div class="backtest-head">
+          <h2>Full Market Scope</h2>
+          <div id="twFullMarketMeta" class="monitor-meta">讀取台股全市場範圍中...</div>
+        </div>
+        <div id="twFullMarketHealth" class="backtest-grid">
+          <div class="empty">Loading</div>
+        </div>
+      </section>
+      <section class="scan-panel">
+        <div class="backtest-head">
+          <h2>嚴格投研短名單</h2>
+          <div id="twShortlistMeta" class="monitor-meta">讀取嚴格短名單中...</div>
+        </div>
+        <section id="twShortlistResults" class="opportunity-grid">
+          <div class="empty">Loading</div>
+        </section>
+      </section>
+      <section class="scan-panel">
+        <div class="backtest-head">
+          <h2>最新推薦 / 風險候選</h2>
+          <button id="refreshLatest" class="secondary">刷新最新進度</button>
+        </div>
+        <section id="latestOpportunities" class="opportunity-grid">
+          <div class="empty">尚未載入</div>
+        </section>
+      </section>
+      <section class="scan-panel">
+        <div class="backtest-head">
+          <h2>推薦追蹤成效</h2>
+          <div id="outcomeMeta" class="monitor-meta">讀取 5/20/60 天 outcome 中...</div>
+        </div>
+        <div id="outcomeSummary" class="backtest-grid">
+          <div class="empty">尚未載入</div>
+        </div>
+        <div id="dailyLogMeta" class="monitor-meta">讀取每日推薦紀錄中...</div>
+        <div id="dailyLogSummary" class="backtest-grid">
+          <div class="empty">Loading</div>
+        </div>
+        <div id="outcomeAttribution" class="backtest-grid">
+          <div class="empty">尚未載入歸因</div>
+        </div>
+      </section>
+      <section class="scan-panel">
+        <div class="backtest-head">
+          <h2>財務資料稽核</h2>
+          <div id="financialAuditMeta" class="monitor-meta">讀取基本面來源與缺口中...</div>
+        </div>
+        <div id="financialAuditSummary" class="backtest-grid">
+          <div class="empty">尚未載入</div>
+        </div>
+      </section>
+      <section class="scan-panel">
+        <div class="backtest-head">
+          <h2>主動式 ETF 線索</h2>
+          <div class="monitor-meta">新增/加碼是正向線索，減碼/刪除是風險觀察。</div>
+        </div>
+        <div id="latestEtfSignals" class="backtest-grid">
+          <div class="empty">尚未載入</div>
+        </div>
+      </section>
+    </section>
+
+    <section id="scanPage" class="page">
+      <section class="scan-panel">
+        <div class="backtest-head">
+          <h2>全市場 / 候選池掃描</h2>
+          <div id="scanMeta" class="monitor-meta">目前是候選池掃描，不是真正全市場。讀取候選池中...</div>
+        </div>
+        <div class="scan-controls">
+          <label class="control">
+            掃描數量
+            <input id="scanLimit" type="number" min="1" max="200" step="1" value="25" aria-label="掃描數量">
+          </label>
+          <label class="control">
+            最低優先
+            <input id="minPriority" type="number" min="0" max="100" step="5" value="25" aria-label="最低雷達優先度">
+          </label>
+          <label class="control">
+            快取分鐘
+            <input id="refreshMinutes" type="number" min="0" max="1440" step="5" value="60" aria-label="快取分鐘">
+          </label>
+          <label class="control">
+            資產類別
+            <select id="scanAsset" aria-label="掃描資產類別">
+              <option value="">全部</option>
+              <option value="美股/ETF">美股/ETF</option>
+              <option value="台股">台股</option>
+              <option value="原物料">原物料</option>
+              <option value="虛擬貨幣">虛擬貨幣</option>
+            </select>
+          </label>
+          <button id="expandUniverse" class="secondary">擴大候選池</button>
+          <button id="importUniverse" class="secondary">匯入水池 CSV</button>
+          <button id="maximizeUniverse" class="secondary">最大化水池</button>
+          <button id="scanMarket">掃描候選池</button>
+        </div>
+      </section>
+      <section class="scheduler-panel">
+        <div class="backtest-head">
+          <h2>背景自動掃描</h2>
+          <div id="schedulerMeta" class="monitor-meta">尚未啟動背景掃描。</div>
+        </div>
+        <div class="scan-controls">
+          <label class="control">
+            間隔分鐘
+            <input id="schedulerInterval" type="number" min="1" max="1440" step="1" value="30" aria-label="背景掃描間隔分鐘">
+          </label>
+          <label class="control">
+            每批檔數
+            <input id="schedulerBatch" type="number" min="1" max="200" step="1" value="25" aria-label="背景掃描每批檔數">
+          </label>
+          <label class="control">
+            快取分鐘
+            <input id="schedulerRefresh" type="number" min="0" max="1440" step="5" value="60" aria-label="背景掃描快取分鐘">
+          </label>
+          <button id="startScheduler">啟動背景掃描</button>
+          <button id="stopScheduler" class="secondary">停止</button>
+        </div>
+      </section>
+      <section id="scanResults" class="opportunity-grid">
+        <div class="empty">尚未掃描</div>
+      </section>
+    </section>
+
+    <section id="activeEtfPage" class="page">
+      <section class="scan-panel">
+        <div class="backtest-head">
+          <h2>主動式 ETF 持股異動</h2>
+          <div id="activeEtfMeta" class="monitor-meta">讀取主動式 ETF 異動中...</div>
+        </div>
+        <div class="scan-controls">
+          <label class="control">
+            交易日
+            <input id="activeEtfDate" type="date" aria-label="主動式 ETF 異動交易日">
+          </label>
+          <label class="control">
+            個股
+            <input id="activeEtfStock" placeholder="2330 或 2330.TW" aria-label="主動式 ETF 異動個股">
+          </label>
+          <button id="loadActiveEtf">查詢異動</button>
+          <button id="importActiveEtf" class="secondary">匯入異動 CSV</button>
+          <button id="syncActiveEtf" class="secondary">同步資料源</button>
+          <button id="forceActiveEtfCsv" class="secondary">強制 CSV fallback</button>
+        </div>
+      </section>
+      <section class="scan-panel">
+        <div class="backtest-head">
+          <h2>資料源狀態</h2>
+          <div id="activeEtfSourceMeta" class="monitor-meta">讀取資料源狀態中...</div>
+        </div>
+        <div id="activeEtfSourceStatus" class="backtest-grid">
+          <div class="empty">尚未載入</div>
+        </div>
+        <div id="activeEtfSyncAttempts" class="attempt-list" aria-label="主動式 ETF 同步嘗試"></div>
+      </section>
+      <section class="scan-panel">
+        <div class="backtest-head">
+          <h2>個股線索彙總</h2>
+          <div class="monitor-meta">多檔主動式 ETF 同向加碼/新增，會是較強的研究線索。</div>
+        </div>
+        <div id="activeEtfSummary" class="backtest-grid">
+          <div class="empty">尚未載入</div>
+        </div>
+      </section>
+      <section id="activeEtfChanges" class="opportunity-grid">
+        <div class="empty">尚未載入</div>
+      </section>
+      <section class="scan-panel">
+        <div class="backtest-head">
+          <h2>資料匯入稽核</h2>
+          <div id="dataAuditMeta" class="monitor-meta">讀取最近匯入紀錄中...</div>
+        </div>
+        <div id="dataAuditList" class="audit-list">
+          <div class="empty">尚未載入</div>
+        </div>
+      </section>
+    </section>
+
+    <section id="manualPage" class="page">
+    <section class="toolbar">
+      <div class="input-row">
+        <input id="symbols" value="AAPL, 2330.TW, GC=F, BTC-USD" autocomplete="off" spellcheck="false" aria-label="投資代號">
+        <button id="analyze">分析</button>
+        <button id="research">投研報告</button>
+        <button id="backtest" class="secondary">回測</button>
+      </div>
+      <div class="quick" aria-label="快速範例">
+        <button class="secondary" data-symbols="AAPL, MSFT, NVDA, SPY">美股</button>
+        <button class="secondary" data-symbols="2330.TW, 2317.TW, 0050.TW">台股</button>
+        <button class="secondary" data-symbols="GC=F, CL=F, HG=F">原物料</button>
+        <button class="secondary" data-symbols="BTC-USD, ETH-USD, SOL-USD">虛擬貨幣</button>
+      </div>
+    </section>
+
+    <div class="status" id="status">輸入代號後分析，台股請用 2330.TW，美股用 AAPL，原物料常見 GC=F，虛擬貨幣用 BTC-USD。</div>
+    <div class="controls">
+      <label class="control">
+        波動門檻
+        <input id="threshold" type="number" min="0.5" max="30" step="0.5" placeholder="自動" aria-label="波動門檻百分比">
+        %
+      </label>
+      <label class="control">
+        <input id="autoRefresh" type="checkbox">
+        5 分鐘自動刷新
+      </label>
+      <label class="control">
+        回測天數
+        <input id="backtestDays" type="number" min="30" max="2500" step="30" value="180" aria-label="回測天數">
+      </label>
+      <label class="control">
+        成本 bps
+        <input id="costBps" type="number" min="0" max="100" step="1" value="5" aria-label="交易成本基點">
+      </label>
+    </div>
+    <section id="backtestPanel" class="backtest-panel" aria-label="回測結果">
+      <div class="backtest-head">
+        <h2>回測結果</h2>
+        <div id="backtestMeta" class="monitor-meta">尚未回測</div>
+      </div>
+      <div id="backtestResults" class="backtest-grid"></div>
+    </section>
+    <section id="researchPanel" class="research-panel" aria-label="Agent 投研報告">
+      <div class="backtest-head">
+        <h2>Agent 投研提報</h2>
+        <div id="researchMeta" class="monitor-meta">尚未產生投研報告</div>
+      </div>
+      <div id="researchResults" class="research-grid"></div>
+    </section>
+    <section class="dashboard">
+      <aside class="monitor" aria-label="市場監控">
+        <h2>市場監控</h2>
+        <div id="monitorMeta" class="monitor-meta">分析後會顯示超過門檻的價格波動、新聞語氣與可能催化原因。</div>
+        <div id="alerts" class="alert-list">
+          <div class="empty">尚無警示</div>
+        </div>
+      </aside>
+      <section id="results" class="grid">
+        <div class="empty">尚未分析</div>
+      </section>
+    </section>
+    </section>
+
+    <section id="dailyPage" class="page">
+      <section class="scan-panel">
+        <div class="backtest-head">
+          <h2>每日推薦 — 分天瀏覽</h2>
+          <div id="dailyRecMeta" class="monitor-meta">讀取每日推薦中...</div>
+        </div>
+        <div class="scan-controls">
+          <label class="control">
+            日期
+            <select id="dailyDateSelect" aria-label="每日推薦日期"></select>
+          </label>
+          <button id="dailyRefresh" class="secondary">刷新</button>
+        </div>
+        <div id="dailyDaySummary" class="backtest-grid">
+          <div class="empty">尚未載入</div>
+        </div>
+        <div id="dailyDayTable" class="daily-table-wrap">
+          <div class="empty">尚未載入</div>
+        </div>
+      </section>
+      <section class="scan-panel">
+        <div class="backtest-head">
+          <h2>趨勢 — 每日推薦檔數</h2>
+          <div class="monitor-meta">每天嚴格候選的數量與核心/研究組成隨時間的變化。</div>
+        </div>
+        <div id="dailyCountTrend">
+          <div class="empty">尚未載入</div>
+        </div>
+      </section>
+      <section class="scan-panel">
+        <div class="backtest-head">
+          <h2>趨勢 — 持續上榜（值得追蹤的個股）</h2>
+          <div id="dailyPersistenceMeta" class="monitor-meta">只列出在多天推薦中重複出現的個股；只出現一天的通常是雜訊，不列入。</div>
+        </div>
+        <div class="scan-controls">
+          <label class="control">
+            最少上榜天數
+            <select id="dailyMinDays" aria-label="最少上榜天數">
+              <option value="2" selected>2 天以上</option>
+              <option value="3">3 天以上</option>
+              <option value="4">4 天以上</option>
+            </select>
+          </label>
+        </div>
+        <div id="dailyPersistence">
+          <div class="empty">尚未載入</div>
+        </div>
+      </section>
+      <section class="scan-panel">
+        <div class="backtest-head">
+          <h2>趨勢 — 個股分數走勢</h2>
+          <div class="monitor-meta">點上方持續上榜的個股，或在此選擇，看它在各日推薦中的投研分數與價格變化。</div>
+        </div>
+        <div class="scan-controls">
+          <label class="control">
+            個股
+            <select id="dailySymbolSelect" aria-label="個股走勢選擇"></select>
+          </label>
+        </div>
+        <div id="dailySymbolTrend">
+          <div class="empty">尚未載入</div>
+        </div>
+      </section>
+      <section class="scan-panel">
+        <div class="backtest-head">
+          <h2>績效回測 — 每日推薦追蹤</h2>
+          <div id="dailyPerfMeta" class="monitor-meta">讀取績效資料中...</div>
+        </div>
+        <div id="dailyPerfContent">
+          <div class="empty">尚未載入</div>
+        </div>
+      </section>
+      <section class="scan-panel">
+        <div class="backtest-head">
+          <h2>即時警示 — 推薦名單價格異動</h2>
+          <div id="watchlistMeta" class="monitor-meta">讀取警示中...</div>
+        </div>
+        <div class="scan-controls">
+          <button id="watchlistRefresh" class="secondary">刷新警示</button>
+          <span id="watchlistStatus" class="monitor-meta" style="margin-left:12px"></span>
+        </div>
+        <div id="watchlistAlerts">
+          <div class="empty">尚未載入</div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const symbolsInput = document.querySelector("#symbols");
+    const latestMeta = document.querySelector("#latestMeta");
+    const latestHealth = document.querySelector("#latestHealth");
+    const dataHealthMeta = document.querySelector("#dataHealthMeta");
+    const dataHealthSummary = document.querySelector("#dataHealthSummary");
+    let preTradeChecklistBySymbol = new Map();
+    const latestOpportunities = document.querySelector("#latestOpportunities");
+    const twFullMarketMeta = document.querySelector("#twFullMarketMeta");
+    const twFullMarketHealth = document.querySelector("#twFullMarketHealth");
+    const twShortlistMeta = document.querySelector("#twShortlistMeta");
+    const twShortlistResults = document.querySelector("#twShortlistResults");
+    const outcomeMeta = document.querySelector("#outcomeMeta");
+    const outcomeSummary = document.querySelector("#outcomeSummary");
+    const dailyLogMeta = document.querySelector("#dailyLogMeta");
+    const dailyLogSummary = document.querySelector("#dailyLogSummary");
+    const outcomeAttribution = document.querySelector("#outcomeAttribution");
+    const financialAuditMeta = document.querySelector("#financialAuditMeta");
+    const financialAuditSummary = document.querySelector("#financialAuditSummary");
+    const latestEtfSignals = document.querySelector("#latestEtfSignals");
+    const refreshLatestButton = document.querySelector("#refreshLatest");
+    const aegisRefreshButton = document.querySelector("#aegisRefresh");
+    const dailyRecommendButton = document.querySelector("#dailyRecommend");
+    const scanButton = document.querySelector("#scanMarket");
+    const expandUniverseButton = document.querySelector("#expandUniverse");
+    const importUniverseButton = document.querySelector("#importUniverse");
+    const maximizeUniverseButton = document.querySelector("#maximizeUniverse");
+    const scanLimitInput = document.querySelector("#scanLimit");
+    const minPriorityInput = document.querySelector("#minPriority");
+    const refreshMinutesInput = document.querySelector("#refreshMinutes");
+    const scanAssetInput = document.querySelector("#scanAsset");
+    const scanResults = document.querySelector("#scanResults");
+    const scanMeta = document.querySelector("#scanMeta");
+    const schedulerMeta = document.querySelector("#schedulerMeta");
+    const schedulerIntervalInput = document.querySelector("#schedulerInterval");
+    const schedulerBatchInput = document.querySelector("#schedulerBatch");
+    const schedulerRefreshInput = document.querySelector("#schedulerRefresh");
+    const startSchedulerButton = document.querySelector("#startScheduler");
+    const stopSchedulerButton = document.querySelector("#stopScheduler");
+    const activeEtfMeta = document.querySelector("#activeEtfMeta");
+    const activeEtfDateInput = document.querySelector("#activeEtfDate");
+    const activeEtfStockInput = document.querySelector("#activeEtfStock");
+    const loadActiveEtfButton = document.querySelector("#loadActiveEtf");
+    const importActiveEtfButton = document.querySelector("#importActiveEtf");
+    const syncActiveEtfButton = document.querySelector("#syncActiveEtf");
+    const forceActiveEtfCsvButton = document.querySelector("#forceActiveEtfCsv");
+    const activeEtfSourceMeta = document.querySelector("#activeEtfSourceMeta");
+    const activeEtfSourceStatus = document.querySelector("#activeEtfSourceStatus");
+    const activeEtfSyncAttempts = document.querySelector("#activeEtfSyncAttempts");
+    const activeEtfSummary = document.querySelector("#activeEtfSummary");
+    const activeEtfChanges = document.querySelector("#activeEtfChanges");
+    const dataAuditMeta = document.querySelector("#dataAuditMeta");
+    const dataAuditList = document.querySelector("#dataAuditList");
+    const analyzeButton = document.querySelector("#analyze");
+    const researchButton = document.querySelector("#research");
+    const backtestButton = document.querySelector("#backtest");
+    const results = document.querySelector("#results");
+    const statusEl = document.querySelector("#status");
+    const stamp = document.querySelector("#stamp");
+    const alertsEl = document.querySelector("#alerts");
+    const monitorMeta = document.querySelector("#monitorMeta");
+    const thresholdInput = document.querySelector("#threshold");
+    const autoRefreshInput = document.querySelector("#autoRefresh");
+    const backtestDaysInput = document.querySelector("#backtestDays");
+    const costBpsInput = document.querySelector("#costBps");
+    const backtestPanel = document.querySelector("#backtestPanel");
+    const backtestResults = document.querySelector("#backtestResults");
+    const backtestMeta = document.querySelector("#backtestMeta");
+    const researchPanel = document.querySelector("#researchPanel");
+    const researchResults = document.querySelector("#researchResults");
+    const researchMeta = document.querySelector("#researchMeta");
+    let refreshTimer = null;
+
+    const fmt = new Intl.NumberFormat("zh-TW", { maximumFractionDigits: 2 });
+    const compact = new Intl.NumberFormat("zh-TW", { notation: "compact", maximumFractionDigits: 2 });
+    const setText = (selector, text) => {
+      const el = document.querySelector(selector);
+      if (el) el.textContent = text;
+    };
+
+    function applyReadableLabels() {
+      document.title = "投資研究儀表板";
+      const setAttr = (selector, attr, text) => {
+        const el = document.querySelector(selector);
+        if (el) el.setAttribute(attr, text);
+      };
+      const setControlLabel = (inputSelector, text) => {
+        const input = document.querySelector(inputSelector);
+        const label = input?.closest("label");
+        if (!label) return;
+        const textNode = [...label.childNodes].find(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+        if (textNode) textNode.textContent = `${text} `;
+      };
+
+      setText("h1", "投資研究儀表板");
+      setText("#stamp", "資料來源：AegisTrader snapshot、Yahoo Finance、Google News RSS");
+      setAttr(".tabs", "aria-label", "主要頁面");
+
+      const labels = {
+        latestPage: "最新進度",
+        scanPage: "市場掃描",
+        activeEtfPage: "主動式 ETF",
+        manualPage: "手動投研",
+        dailyPage: "每日推薦",
+      };
+      document.querySelectorAll("[data-page]").forEach(button => {
+        const label = labels[button.dataset.page];
+        if (label) button.textContent = label;
+      });
+
+      setText("#latestPage .scan-panel:nth-of-type(1) h2", "系統健康");
+      setText("#latestPage .scan-panel:nth-of-type(4) h2", "最新推薦 / 風險候選");
+      setText("#latestPage .scan-panel:nth-of-type(5) h2", "推薦追蹤成效");
+      setText("#latestPage .scan-panel:nth-of-type(6) h2", "財務資料稽核");
+      setText("#latestPage .scan-panel:nth-of-type(7) h2", "主動式 ETF 線索");
+      setText("#scanPage .scan-panel h2", "全市場掃描");
+      setText("#scanPage .scheduler-panel h2", "背景排程");
+      setText("#activeEtfPage .scan-panel:nth-of-type(1) h2", "主動式 ETF 持股異動");
+      setText("#activeEtfPage .scan-panel:nth-of-type(2) h2", "資料源狀態");
+      setText("#activeEtfPage .scan-panel:nth-of-type(3) h2", "個股線索彙總");
+      setText("#activeEtfPage .scan-panel:nth-of-type(5) h2", "資料匯入稽核");
+      setText("#backtestPanel h2", "回測結果");
+      setText("#researchPanel h2", "Agent 投研提報");
+      setText(".monitor h2", "市場監控");
+
+      setText("#latestMeta", "讀取最新儀表板中...");
+      setText("#dataHealthMeta", "讀取資料健康狀態中...");
+      setText("#twFullMarketMeta", "讀取台股全市場範圍中...");
+      setText("#twShortlistMeta", "讀取嚴格短名單中...");
+      setText("#outcomeMeta", "讀取 5/20/60 天 outcome 中...");
+      setText("#dailyLogMeta", "讀取每日推薦紀錄中...");
+      setText("#financialAuditMeta", "讀取財務稽核中...");
+      setText("#scanMeta", "市場掃描已就緒。");
+      setText("#schedulerMeta", "尚未讀取排程狀態。");
+      setText("#activeEtfMeta", "讀取主動式 ETF 持股中...");
+      setText("#activeEtfSourceMeta", "讀取資料源狀態中...");
+      setText("#dataAuditMeta", "讀取匯入稽核中...");
+      setText("#status", "請輸入逗號分隔的代號，例如 2330.TW, AAPL, GC=F, BTC-USD。");
+      setText("#monitorMeta", "執行分析後會顯示警示、門檻與研究線索。");
+
+      setText("#refreshLatest", "刷新最新進度");
+      setText("#aegisRefresh", "刷新 Aegis 快照");
+      setText("#dailyRecommend", "執行每日推薦");
+      setText("#expandUniverse", "擴大候選池");
+      setText("#importUniverse", "匯入候選池 CSV");
+      setText("#maximizeUniverse", "最大化候選池");
+      setText("#scanMarket", "掃描市場");
+      setText("#startScheduler", "啟動排程");
+      setText("#stopScheduler", "停止");
+      setText("#loadActiveEtf", "查詢持股");
+      setText("#importActiveEtf", "匯入 CSV");
+      setText("#syncActiveEtf", "同步資料源");
+      setText("#forceActiveEtfCsv", "強制 CSV fallback");
+      setText("#analyze", "分析");
+      setText("#research", "投研報告");
+      setText("#backtest", "回測");
+
+      setControlLabel("#scanLimit", "每批檔數");
+      setControlLabel("#minPriority", "最低優先度");
+      setControlLabel("#refreshMinutes", "快取分鐘");
+      setControlLabel("#scanAsset", "資產類別");
+      setControlLabel("#schedulerInterval", "間隔分鐘");
+      setControlLabel("#schedulerBatch", "每批檔數");
+      setControlLabel("#schedulerRefresh", "快取分鐘");
+      setControlLabel("#activeEtfDate", "交易日");
+      setControlLabel("#activeEtfStock", "股票代號");
+      setControlLabel("#threshold", "警示門檻");
+      setControlLabel("#backtestDays", "回測天數");
+      setControlLabel("#costBps", "成本 bps");
+
+      setAttr("#symbols", "aria-label", "投資代號");
+      setAttr("#symbols", "placeholder", "2330.TW, AAPL, GC=F, BTC-USD");
+      setAttr("#scanLimit", "aria-label", "每批檔數");
+      setAttr("#minPriority", "aria-label", "最低優先度");
+      setAttr("#refreshMinutes", "aria-label", "快取分鐘");
+      setAttr("#scanAsset", "aria-label", "資產類別");
+      setAttr("#schedulerInterval", "aria-label", "排程間隔分鐘");
+      setAttr("#schedulerBatch", "aria-label", "排程每批檔數");
+      setAttr("#schedulerRefresh", "aria-label", "排程快取分鐘");
+      setAttr("#activeEtfDate", "aria-label", "主動式 ETF 交易日");
+      setAttr("#activeEtfStock", "aria-label", "主動式 ETF 股票代號");
+      setAttr("#activeEtfStock", "placeholder", "2330 或 2330.TW");
+      setAttr("#threshold", "aria-label", "警示門檻百分比");
+      setAttr("#backtestDays", "aria-label", "回測天數");
+      setAttr("#costBps", "aria-label", "交易成本 bps");
+
+      document.querySelectorAll(".empty").forEach(el => {
+        if (/[�\uE000-\uF8FF]/.test(el.textContent)) el.textContent = "尚未載入";
+      });
+    }
+
+    applyReadableLabels();
+
+    function value(v, suffix = "") {
+      if (v === null || v === undefined || Number.isNaN(Number(v))) return "-";
+      return `${fmt.format(Number(v))}${suffix}`;
+    }
+
+    function ratioPercent(v) {
+      if (v === null || v === undefined || Number.isNaN(Number(v))) return "-";
+      return value(Number(v) * 100, "%");
+    }
+
+    function money(item) {
+      if (item.price === null || item.price === undefined) return "-";
+      return `${value(item.price)} ${item.currency || ""}`.trim();
+    }
+
+    function impactClass(impact) {
+      if (impact > 0) return "impact good";
+      if (impact < 0) return "impact bad";
+      return "impact";
+    }
+
+    function confidenceLabel(confidence) {
+      return {
+        high: "高信心",
+        medium: "中信心",
+        low: "低信心",
+        none: "無數據",
+        not_applicable: "不適用",
+      }[confidence] || "未標記";
+    }
+
+    function evidenceValue(v) {
+      if (v === null || v === undefined || v === "") return "-";
+      if (typeof v === "number") return fmt.format(v);
+      return String(v);
+    }
+
+    function fieldEvidence(fields) {
+      const entries = Object.entries(fields || {});
+      if (!entries.length) return "-";
+      return entries.map(([key, val]) => `${key}: ${evidenceValue(val)}`).join("；");
+    }
+
+    function computeMA(data, period) {
+      return data.map((_, i) => {
+        if (i < period - 1) return null;
+        const sum = data.slice(i - period + 1, i + 1).reduce((s, d) => s + d.close, 0);
+        return sum / period;
+      });
+    }
+
+    function renderCandlestickChart(canvas, chartData) {
+      if (!canvas || !chartData || chartData.length < 5) return;
+      const dpr = window.devicePixelRatio || 1;
+      const W = canvas.offsetWidth || 340;
+      const H = 220;
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
+      canvas.style.height = H + 'px';
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+
+      const data = chartData;
+      const n = data.length;
+      const PAD_L = 6, PAD_R = 54, PAD_T = 14, PAD_B = 2;
+      const VOL_H = 40, DATE_H = 16;
+      const PRICE_H = H - PAD_T - VOL_H - DATE_H - PAD_B;
+      const CW = W - PAD_L - PAD_R;
+
+      const GRID = '#e5e7eb', BULL = '#dc2626', BEAR = '#0d9488';
+      const MA20_CLR = '#f59e0b', MA60_CLR = '#3b82f6', TXT = '#9ca3af';
+
+      ctx.fillStyle = '#f9fafb';
+      ctx.fillRect(0, 0, W, H);
+
+      const ma20 = computeMA(data, 20);
+      const ma60 = computeMA(data, 60);
+
+      const maxP = Math.max(...data.map(d => d.high));
+      const minP = Math.min(...data.map(d => d.low));
+      const buf = (maxP - minP || 1) * 0.06;
+      const pHigh = maxP + buf, pLow = minP - buf;
+      const maxVol = Math.max(...data.map(d => d.volume)) || 1;
+
+      const xOf = i => PAD_L + (i + 0.5) * CW / n;
+      const yP = p => PAD_T + PRICE_H * (1 - (p - pLow) / (pHigh - pLow));
+      const volTop = PAD_T + PRICE_H + DATE_H;
+      const yV = v => volTop + VOL_H * (1 - v / maxVol);
+      const cw = Math.max(1.5, CW / n * 0.68);
+
+      ctx.font = `10px "Segoe UI",sans-serif`;
+      ctx.strokeStyle = GRID;
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i <= 4; i++) {
+        const p = pLow + (pHigh - pLow) * i / 4;
+        const y = yP(p);
+        ctx.beginPath(); ctx.moveTo(PAD_L, y); ctx.lineTo(W - PAD_R + 2, y); ctx.stroke();
+        const label = p >= 1000 ? p.toFixed(0) : p >= 100 ? p.toFixed(1) : p.toFixed(2);
+        ctx.fillStyle = TXT; ctx.textAlign = 'left';
+        ctx.fillText(label, W - PAD_R + 4, y + 3.5);
+      }
+
+      ctx.strokeStyle = GRID;
+      ctx.beginPath(); ctx.moveTo(PAD_L, volTop); ctx.lineTo(W - PAD_R + 2, volTop); ctx.stroke();
+
+      function drawMA(arr, color) {
+        ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.beginPath();
+        let first = true;
+        for (let i = 0; i < n; i++) {
+          if (arr[i] === null) continue;
+          if (first) { ctx.moveTo(xOf(i), yP(arr[i])); first = false; }
+          else ctx.lineTo(xOf(i), yP(arr[i]));
+        }
+        ctx.stroke();
+      }
+      drawMA(ma20, MA20_CLR);
+      drawMA(ma60, MA60_CLR);
+
+      for (let i = 0; i < n; i++) {
+        const d = data[i];
+        const x = xOf(i);
+        const bull = d.close >= d.open;
+        const clr = bull ? BULL : BEAR;
+        ctx.strokeStyle = clr; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(x, yP(d.high)); ctx.lineTo(x, yP(d.low)); ctx.stroke();
+        const bTop = yP(Math.max(d.open, d.close));
+        const bBot = yP(Math.min(d.open, d.close));
+        ctx.fillStyle = clr;
+        ctx.fillRect(x - cw / 2, bTop, cw, Math.max(1, bBot - bTop));
+        ctx.fillStyle = bull ? 'rgba(13,148,136,0.4)' : 'rgba(220,38,38,0.4)';
+        ctx.fillRect(x - cw / 2, yV(d.volume), cw, volTop + VOL_H - yV(d.volume));
+      }
+
+      const step = Math.max(1, Math.floor(n / 6));
+      ctx.fillStyle = TXT; ctx.font = `9px "Segoe UI",sans-serif`; ctx.textAlign = 'center';
+      for (let i = 0; i < n; i += step) {
+        const dt = new Date(data[i].time * 1000);
+        ctx.fillText(`${dt.getMonth() + 1}/${dt.getDate()}`, xOf(i), PAD_T + PRICE_H + DATE_H - 2);
+      }
+
+      ctx.textAlign = 'left'; ctx.font = `bold 9px "Segoe UI",sans-serif`;
+      ctx.fillStyle = MA20_CLR; ctx.fillText('MA20', PAD_L + 2, PAD_T - 2);
+      ctx.fillStyle = MA60_CLR; ctx.fillText('MA60', PAD_L + 38, PAD_T - 2);
+    }
+
+    function renderCard(item) {
+      const rec = item.recommendation;
+      const metrics = rec.metrics;
+      const fundamentals = item.fundamentals || rec.fundamentals || {};
+      const monitoring = item.monitoring || { metrics: {}, catalyst_news: [], alerts: [] };
+      const riskItems = rec.risks.length ? rec.risks : ["請自行確認個人風險承受度、資金配置與稅務成本。"];
+      const news = item.news.length ? item.news : [{ title: "沒有取得近期新聞", source: "資料不足", link: "#", published: "" }];
+      const catalyst = monitoring.catalyst_news || [];
+      const factors = rec.factors || {};
+      const dataQuality = rec.data_quality || {};
+      const dataGate = rec.data_gate || {};
+      const dataPolicy = rec.data_policy || {};
+      const sourceAttempts = dataPolicy.attempted_sources || [];
+      const effectiveWeights = rec.effective_factor_weights || rec.factor_weights || {};
+      const effectiveWeightText = Object.entries(effectiveWeights)
+        .map(([key, val]) => `${key}:${value(Number(val) * 100, "%")}`)
+        .join("；");
+      const factorOrder = ["trend", "momentum", "value", "quality", "risk", "sentiment", "liquidity", "active_etf_flow"];
+      const factorRows = factorOrder
+        .filter(key => factors[key])
+        .map(key => {
+          const factor = factors[key];
+          const coverage = factor.coverage === undefined ? "-" : value(Number(factor.coverage) * 100, "%");
+          return `<div class="factor"><span>${factor.label || key}</span><b>${factor.score ?? "-"}</b><small>${confidenceLabel(factor.confidence)} · 覆蓋 ${coverage}</small></div>`;
+        }).join("");
+      const qualityFactors = dataQuality.factors || {};
+      const qualityRows = factorOrder
+        .filter(key => qualityFactors[key])
+        .map(key => {
+          const row = qualityFactors[key];
+          const coverage = row.coverage === undefined ? "-" : value(Number(row.coverage) * 100, "%");
+          const missing = (row.missing_fields || []).length ? row.missing_fields.join("、") : "無";
+          return `
+            <div class="signal">
+              <small>${row.factor_label || key}</small>
+              <div>
+                <b>${confidenceLabel(row.confidence)} · 覆蓋 ${coverage}</b><br>
+                <small>已用：${fieldEvidence(row.used_fields)}</small><br>
+                <small>缺口：${missing}</small>
+              </div>
+              <span class="impact">${row.source_status || "-"}</span>
+            </div>
+          `;
+        }).join("");
+      return `
+        <article class="card">
+          <div class="card-head">
+            <div>
+              <div class="symbol">
+                <strong>${item.symbol}</strong>
+                <span class="tag">${item.asset_type}</span>
+              </div>
+              <div class="name">${item.name}</div>
+            </div>
+            <div class="score" style="--value:${rec.score}"><span>${rec.score}</span></div>
+          </div>
+          <div class="action">
+            <b>${rec.action}</b>
+            <p>${rec.stance}</p>
+          </div>
+          ${factorRows ? `<div class="factor-grid">${factorRows}</div>` : ""}
+          <div class="metrics">
+            <div class="metric"><span>現價</span><b>${money(item)}</b></div>
+            <div class="metric"><span>日漲跌</span><b>${value(item.change_percent, "%")}</b></div>
+            <div class="metric"><span>一月</span><b>${value(metrics.change_1m, "%")}</b></div>
+            <div class="metric"><span>三月</span><b>${value(metrics.change_3m, "%")}</b></div>
+            <div class="metric"><span>5 日</span><b>${value(monitoring.metrics.change_5d, "%")}</b></div>
+            <div class="metric"><span>波動門檻</span><b>${value(monitoring.metrics.movement_threshold, "%")}</b></div>
+            <div class="metric"><span>日波動</span><b>${value(monitoring.metrics.daily_volatility, "%")}</b></div>
+            <div class="metric"><span>產業</span><b>${[item.sector, item.industry].filter(Boolean).join(" / ") || "-"}</b></div>
+            <div class="metric"><span>資料信心</span><b>${confidenceLabel(dataQuality.confidence)} · ${value(Number(dataQuality.coverage || 0) * 100, "%")}</b></div>
+            <div class="metric"><span>推薦等級</span><b>${rec.grade || "-"}</b></div>
+            <div class="metric"><span>資料門檻</span><b>${dataGate.cap || "-"}</b></div>
+            <div class="metric"><span>有效權重</span><b>${effectiveWeightText || "-"}</b></div>
+            <div class="metric"><span>RSI14</span><b>${value(metrics.rsi_14)}</b></div>
+            <div class="metric"><span>MACD斜率</span><b>${value(metrics.macd_histogram_slope)}</b></div>
+            <div class="metric"><span>ATR%</span><b>${value(metrics.atr_percent, "%")}</b></div>
+            <div class="metric"><span>Hurst60</span><b>${value(metrics.hurst_60)}</b></div>
+            <div class="metric"><span>最新 EPS</span><b>${value(fundamentals.latest_eps)}</b></div>
+            <div class="metric"><span>EPS QoQ</span><b>${ratioPercent(fundamentals.eps_qoq)}</b></div>
+            <div class="metric"><span>營收 YoY</span><b>${ratioPercent(fundamentals.revenue_yoy)}</b></div>
+            <div class="metric"><span>營收 MoM</span><b>${ratioPercent(fundamentals.revenue_mom)}</b></div>
+          </div>
+          ${item.chart && item.chart.length >= 5 ? `<canvas class="kline-chart" id="kline-${item.symbol.replace(/\W/g, '-')}"></canvas>` : ""}
+          ${item.asset_type === "台股" ? `
+            <div class="industry-cmp" id="icmp-${item.symbol.replace(/\W/g, '-')}">
+              <h4>同業比較<button class="icmp-load-btn" onclick="loadIndustryCmp('${item.symbol}')">載入</button></h4>
+            </div>
+          ` : ""}
+          ${(() => {
+            const mev = monitoring.movement_evidence;
+            if (!mev || !mev.triggered) return "";
+            const clsLabel = mev.classification_label || mev.classification;
+            const confLabel = { high: "高信心", medium: "中信心", low: "低信心" }[mev.confidence] || "";
+            const ev = mev.evidence || {};
+            const mktEv = ev.market;
+            const secEv = ev.sector;
+            const techEv = ev.technical || {};
+
+            const mktRow = mktEv ? `
+              <div class="mev-row">
+                <span class="mev-row-label">大盤層</span>
+                <span>${mktEv.note || "-"}</span>
+              </div>` : "";
+
+            const secRow = secEv ? `
+              <div class="mev-row">
+                <span class="mev-row-label">族群層</span>
+                <span>${secEv.note || "-"}</span>
+              </div>` : "";
+
+            const techNotes = (techEv.notes || []).join("；");
+            const techRow = techNotes ? `
+              <div class="mev-row">
+                <span class="mev-row-label">個股層</span>
+                <span>${techNotes}</span>
+              </div>` : "";
+
+            return `
+              <div class="mev">
+                <div class="mev-header">
+                  波動溯因
+                  <span class="mev-cls ${mev.classification}">${clsLabel}</span>
+                  <span class="mev-conf">${confLabel}</span>
+                </div>
+                ${mktRow}${secRow}${techRow}
+                <div class="mev-summary">${mev.summary || ""}</div>
+              </div>`;
+          })()}
+          ${sourceAttempts.length ? `
+            <div class="signals"><b>資料抓取狀態</b>
+              ${sourceAttempts.map(row => `
+                <div class="signal">
+                  <small>${row.status || "-"}</small>
+                  <div><b>${row.source || "-"}</b><br><small>${fieldEvidence(row.fields)}</small></div>
+                  <span class="impact">${row.status || "-"}</span>
+                </div>
+              `).join("")}
+            </div>
+          ` : ""}
+          ${qualityRows ? `<div class="signals"><b>資料佐證</b>${qualityRows}</div>` : ""}
+          <div class="signals">
+            ${rec.signals.map(signal => `
+              <div class="signal">
+                <small>${signal.category}</small>
+                <div><b>${signal.label}</b><br><small>${signal.detail}</small></div>
+                <span class="${impactClass(signal.impact)}">${signal.impact > 0 ? "+" : ""}${signal.impact}</span>
+              </div>
+            `).join("")}
+          </div>
+          <div class="risk">
+            <b>風險與檢查點</b>
+            <p>${riskItems.join(" ")}</p>
+          </div>
+          ${catalyst.length ? `
+            <div class="catalyst">
+              <b>波動佐證新聞</b>
+              ${catalyst.slice(0, 3).map(row => `
+                <a href="${row.link}" target="_blank" rel="noreferrer">
+                  ${row.title}
+                  <small>${row.source}${row.published ? " · " + row.published : ""}</small>
+                </a>
+              `).join("")}
+            </div>
+          ` : ""}
+          <div class="news">
+            ${news.slice(0, 4).map(row => `
+              <a href="${row.link}" target="_blank" rel="noreferrer">
+                ${row.title}
+                <small>${row.source}${row.published ? " · " + row.published : ""}</small>
+              </a>
+            `).join("")}
+          </div>
+        </article>
+      `;
+    }
+
+    function severityRank(severity) {
+      return { high: 0, medium: 1, info: 2 }[severity] ?? 3;
+    }
+
+    function renderAlerts(items) {
+      const alerts = items.flatMap(item =>
+        (item.monitoring?.alerts || []).map(alert => ({ ...alert, symbol: item.symbol }))
+      ).sort((a, b) => severityRank(a.severity) - severityRank(b.severity));
+
+      if (!alerts.length) {
+        alertsEl.innerHTML = `<div class="empty">目前沒有超過門檻的波動或新聞警示</div>`;
+        monitorMeta.textContent = "系統會用資產類別門檻與近期日波動估算異常波動。";
+        return;
+      }
+
+      alertsEl.innerHTML = alerts.slice(0, 10).map(alert => `
+        <div class="alert ${alert.severity}">
+          <b>${alert.title}</b>
+          <p>${alert.detail}</p>
+        </div>
+      `).join("");
+      const highCount = alerts.filter(alert => alert.severity === "high").length;
+      const mediumCount = alerts.filter(alert => alert.severity === "medium").length;
+      monitorMeta.textContent = `偵測到 ${alerts.length} 則提示，其中高優先 ${highCount} 則、中優先 ${mediumCount} 則。`;
+    }
+
+    function priorityClass(priority) {
+      if (priority >= 70) return "high";
+      if (priority >= 40) return "medium";
+      return "";
+    }
+
+    function categoryLabel(category) {
+      const labels = {
+        price_event: "價格事件",
+        trend_event: "趨勢事件",
+        technical_strength: "技術轉強",
+        constructive_watch: "正向觀察",
+        risk_watch: "風險觀察",
+        watch: "一般追蹤",
+      };
+      return labels[category] || category;
+    }
+
+    function renderOpportunity(item) {
+      const factors = item.factors || {};
+      const factorOrder = ["trend", "momentum", "value", "quality", "risk", "sentiment", "liquidity", "active_etf_flow"];
+      const factorRows = factorOrder
+        .filter(key => factors[key])
+        .map(key => {
+          const factor = factors[key];
+          const coverage = factor.coverage === undefined ? "-" : value(Number(factor.coverage) * 100, "%");
+          return `<div class="factor"><span>${factor.label || key}</span><b>${factor.score ?? "-"}</b><small>${confidenceLabel(factor.confidence)} · 覆蓋 ${coverage}</small></div>`;
+        }).join("");
+      return `
+        <article class="opportunity-card ${priorityClass(item.priority)}">
+          <div class="card-head">
+            <div>
+              <div class="symbol">
+                <strong>${item.symbol}</strong>
+                <span class="tag">${item.asset_type}</span>
+                <span class="tag">${categoryLabel(item.category)}</span>
+              </div>
+              <div class="name">${item.name || ""}</div>
+            </div>
+            <div class="priority"><span>${item.priority}</span><small>雷達優先</small></div>
+          </div>
+          <div class="metrics">
+            <div class="metric"><span>現價</span><b>${value(item.price)}</b></div>
+            <div class="metric"><span>日漲跌</span><b>${signed(item.change_1d)}</b></div>
+            <div class="metric"><span>5 日</span><b>${signed(item.change_5d)}</b></div>
+            <div class="metric"><span>投研分數</span><b>${item.score ?? "-"}</b></div>
+            <div class="metric"><span>推薦等級</span><b>${item.grade || "-"}</b></div>
+            <div class="metric"><span>Action Bucket</span><b>${item.action_bucket || "-"}</b></div>
+            <div class="metric"><span>資料門檻</span><b>${item.data_gate?.cap || "-"}</b></div>
+            <div class="metric"><span>動作</span><b>${item.action || "-"}</b></div>
+            <div class="metric"><span>Snapshot</span><b>${item.snapshot_id || "-"}</b></div>
+            <div class="metric"><span>歷史筆數</span><b>${item.history?.snapshot_count ?? 0}</b></div>
+            <div class="metric"><span>分數變化</span><b>${signed(item.history?.score_change, "")}</b></div>
+          </div>
+          ${factorRows ? `<div class="factor-grid">${factorRows}</div>` : ""}
+          <div class="risk">
+            <b>機會摘要</b>
+            <p>${item.thesis}</p>
+          </div>
+          <button class="secondary" data-open-symbol="${item.symbol}">進入手動投研</button>
+        </article>
+      `;
+    }
+
+    function renderActiveEtfSummary(row) {
+      const net = Number(row.positive_count || 0) - Number(row.negative_count || 0);
+      return `
+        <article class="backtest-card">
+          <div>
+            <strong>${row.stock_symbol}</strong>
+            <div class="name">${row.stock_name || ""}</div>
+          </div>
+          <div class="backtest-metrics">
+            <div class="metric"><span>ETF 數</span><b>${row.etf_count}</b></div>
+            <div class="metric"><span>新增/加碼</span><b>${row.positive_count}</b></div>
+            <div class="metric"><span>減碼/刪除</span><b>${row.negative_count}</b></div>
+            <div class="metric"><span>淨訊號</span><b>${signed(net, "")}</b></div>
+          </div>
+          <button class="secondary" data-open-symbol="${row.stock_symbol}">進入手動投研</button>
+        </article>
+      `;
+    }
+
+    function renderActiveEtfChange(row) {
+      const positive = Number(row.signal_score || 0) >= 58;
+      const negative = Number(row.signal_score || 0) <= 42;
+      const evidence = row.evidence || { label: row.source || "未知來源", note: "" };
+      return `
+        <article class="opportunity-card ${positive ? "medium" : negative ? "high" : ""}">
+          <div class="card-head">
+            <div>
+              <div class="symbol">
+                <strong>${row.stock_symbol}</strong>
+                <span class="tag">${row.change_type}</span>
+                <span class="tag">${row.etf_symbol}</span>
+                <span class="tag">${evidence.label}</span>
+              </div>
+              <div class="name">${row.stock_name || ""} · ${row.etf_name || ""}</div>
+            </div>
+            <div class="priority"><span>${row.signal_score}</span><small>ETF 線索</small></div>
+          </div>
+          <div class="metrics">
+            <div class="metric"><span>交易日</span><b>${row.trade_date}</b></div>
+            <div class="metric"><span>前日股數</span><b>${value(row.previous_shares, "")}</b></div>
+            <div class="metric"><span>當日股數</span><b>${value(row.current_shares, "")}</b></div>
+            <div class="metric"><span>變動股數</span><b>${signed(row.share_delta, "")}</b></div>
+            <div class="metric"><span>權重</span><b>${value(row.weight, "%")}</b></div>
+            <div class="metric"><span>推估價值</span><b>${value(row.estimated_value, "")}</b></div>
+          </div>
+          <div class="risk">
+            <b>異動摘要</b>
+            <p>${row.thesis || "主動式 ETF 持股異動已記錄，需覆核揭露來源與時間。"}</p>
+            <p>證據狀態：${evidence.status || "-"}。${evidence.note || ""} 來源：${row.source || "-"}</p>
+          </div>
+          <button class="secondary" data-open-symbol="${row.stock_symbol}">進入手動投研</button>
+        </article>
+      `;
+    }
+
+    function renderProgressCard(title, valueText, detailText = "") {
+      return `
+        <article class="backtest-card">
+          <div>
+            <strong>${title}</strong>
+            <div class="name">${detailText}</div>
+          </div>
+          <div class="metric"><span>目前</span><b>${valueText}</b></div>
+        </article>
+      `;
+    }
+
+    function renderDataHealth(payload) {
+      const checks = payload.checks || [];
+      const overall = payload.overall_status || "warn";
+      const actions = payload.actions || [];
+      const readiness = payload.readiness || {};
+      dataHealthMeta.textContent = `Overall ${overall.toUpperCase()} · strict ready: ${payload.decision_readiness ? "yes" : "no"} · ranking ready: ${readiness.ranking_readiness ? "yes" : "no"}`;
+      const healthCards = checks.map(item => renderProgressCard(item.name, String(item.status || "-").toUpperCase(), item.message || ""));
+      const actionCards = actions.slice(0, 4).map(item => renderProgressCard(`Action: ${item.area}`, item.severity?.toUpperCase() || "WARN", item.next_step || item.message || ""));
+      if (readiness.ranking_note) {
+        healthCards.unshift(renderProgressCard("Ranking readiness", readiness.ranking_readiness ? "READY" : "REVIEW", readiness.ranking_note));
+      }
+      dataHealthSummary.innerHTML = healthCards.length || actionCards.length
+        ? [...healthCards, ...actionCards].join("")
+        : `<div class="empty">No health checks returned</div>`;
+    }
+
+    function renderChecklistBadge(symbol) {
+      const item = preTradeChecklistBySymbol.get(symbol);
+      if (!item) return "";
+      const warnCount = (item.checks || []).filter(row => row.status === "warn").length;
+      const blockCount = (item.checks || []).filter(row => row.status === "block").length;
+      return `
+        <div class="risk">
+          <b>Pre-trade gate: ${String(item.overall_status || "-").toUpperCase()}</b>
+          <p>${blockCount} block · ${warnCount} warn · ${item.trade_ready ? "research gate passed" : "manual validation required"}</p>
+        </div>
+      `;
+    }
+
+    function renderRemediationSummary(payload) {
+      const summary = payload.summary || [];
+      const detail = summary.map(item => `${item.disposition}: ${item.count}`).join(" · ");
+      return renderProgressCard("No-quote remediation", payload.count || 0, detail || "No gaps");
+    }
+
+    function renderDailyPerformance(payload) {
+      const summary = payload.summary || [];
+      return summary.map(item => {
+        const winRate = item.win_rate === null || item.win_rate === undefined ? "-" : `${fmt.format(Number(item.win_rate) * 100)}%`;
+        const avgReturn = item.avg_return_percent === null || item.avg_return_percent === undefined ? "-" : `${fmt.format(item.avg_return_percent)}%`;
+        return renderProgressCard(`Daily log ${item.horizon_days}d`, winRate, `ready ${item.ready || 0} · pending ${item.pending || 0} · missing ${item.missing_price || 0} · avg ${avgReturn}`);
+      }).join("");
+    }
+
+    function renderDailyPerf(payload) {
+      const CA_THRESHOLD = -25;
+      const rows = payload.rows || [];
+      const logCount = payload.log_count || 0;
+
+      const byH = {};
+      for (const r of rows) (byH[r.horizon_days] = byH[r.horizon_days] || []).push(r);
+
+      const horizonCards = [5, 20, 60].map(h => {
+        const hrows = byH[h] || [];
+        const ready = hrows.filter(r => r.status === "ready");
+        const pendingCount = hrows.filter(r => r.status === "pending").length;
+        if (!ready.length) return renderProgressCard(`${h}D 追蹤`, "等待中", `pending ${pendingCount}`);
+        const ca = ready.filter(r => r.return_percent !== null && r.return_percent < CA_THRESHOLD);
+        const valid = ready.filter(r => r.return_percent === null || r.return_percent >= CA_THRESHOLD);
+        const vrets = valid.map(r => r.return_percent).filter(x => x !== null);
+        const vwins = vrets.filter(x => x > 0).length;
+        const avg = vrets.length ? (vrets.reduce((a, b) => a + b, 0) / vrets.length).toFixed(1) : "-";
+        const wr = vrets.length ? Math.round(100 * vwins / vrets.length) + "%" : "-";
+        const caNote = ca.length ? ` · CA排除 ${ca.length}` : "";
+        return renderProgressCard(`${h}D 追蹤`, wr, `有效 ${valid.length}${caNote} · avg ${avg}%`);
+      });
+
+      const valid5d = (byH[5] || []).filter(r =>
+        r.status === "ready" && (r.return_percent === null || r.return_percent >= CA_THRESHOLD)
+      );
+      const tierMap = {};
+      for (const r of valid5d) (tierMap[r.tier] = tierMap[r.tier] || []).push(r);
+      const tierCards = Object.entries(tierMap).sort().map(([tier, trows]) => {
+        const rets = trows.map(r => r.return_percent).filter(x => x !== null);
+        const wins = rets.filter(x => x > 0).length;
+        const avg = rets.length ? (rets.reduce((a, b) => a + b, 0) / rets.length).toFixed(1) : "-";
+        const wr = rets.length ? Math.round(100 * wins / rets.length) + "%" : "-";
+        const label = tier === "core_watch" ? "核心關注 5D" : "研究關注 5D";
+        return renderProgressCard(label, wr, `n=${trows.length} · avg ${avg}%`);
+      });
+
+      const caSyms = [...new Set(
+        (byH[5] || []).filter(r => r.status === "ready" && r.return_percent !== null && r.return_percent < CA_THRESHOLD)
+          .map(r => r.symbol)
+      )];
+
+      const notice = `<div class="perf-notice">
+        <b>資料品質：</b>${logCount} 天推薦紀錄。5D 到期結算因後端停機 12 天延遲，首批測量期為 ~13 日而非 5 日，精確的 5D 回測從 2026-06-25 起才有。${caSyms.length ? ` 疑似除權息標的（降幅&gt;25%，已排除於統計）：${caSyms.join("、")}。` : ""}
+      </div>`;
+
+      const ready5d = (byH[5] || []).filter(r => r.status === "ready")
+        .slice().sort((a, b) => (a.return_percent ?? 0) - (b.return_percent ?? 0));
+
+      const tableRows = ready5d.map(r => {
+        const isCA = r.return_percent !== null && r.return_percent < CA_THRESHOLD;
+        const ret = r.return_percent !== null
+          ? `<span class="${isCA ? "neg" : r.return_percent > 0 ? "pos" : ""}">${r.return_percent > 0 ? "+" : ""}${r.return_percent.toFixed(1)}%${isCA ? " ⚠" : ""}</span>`
+          : "-";
+        const tierCls = r.tier === "core_watch" ? "tier-pill tier-core" : "tier-pill tier-research";
+        return `<tr class="${isCA ? "ca-row" : ""}">
+          <td>${r.date}</td><td><b>${r.symbol}</b></td>
+          <td class="thesis">${r.name || ""}</td>
+          <td><span class="${tierCls}">${r.tier === "core_watch" ? "核心" : "研究"}</span></td>
+          <td>${r.score ?? "-"}</td><td>${r.start_price ?? "-"}</td>
+          <td>${r.outcome_price ?? "-"}</td><td>${ret}</td>
+        </tr>`;
+      }).join("");
+
+      const table = ready5d.length
+        ? `<div class="daily-table-wrap"><table class="daily-table">
+            <thead><tr><th>推薦日</th><th>代號</th><th>名稱</th><th>Tier</th><th>分數</th><th>進場價</th><th>結算價</th><th>5D 報酬</th></tr></thead>
+            <tbody>${tableRows}</tbody>
+          </table></div>`
+        : `<div class="empty">尚無到期結算資料</div>`;
+
+      // Attribution section (score / RS-3M / ADX / financial audit)
+      const attr5 = (payload.attribution || {})["5"] || {};
+      function renderAttrTable(buckets, label) {
+        const ready = buckets.filter(b => b.ready > 0);
+        if (!ready.length) return "";
+        const rows = buckets.map(b => {
+          const wr = b.win_rate !== null && b.win_rate !== undefined ? Math.round(b.win_rate * 100) + "%" : "-";
+          const avg = b.avg_return_percent !== null && b.avg_return_percent !== undefined
+            ? `${b.avg_return_percent > 0 ? "+" : ""}${b.avg_return_percent.toFixed(1)}%` : "-";
+          const avgCls = b.avg_return_percent > 0 ? "pos" : b.avg_return_percent < 0 ? "neg" : "";
+          return `<tr><td>${escHtml(b.bucket)}</td><td>${b.n}</td><td>${b.ready}</td><td>${wr}</td><td class="${avgCls}">${avg}</td></tr>`;
+        }).join("");
+        return `<div class="attr-block">
+          <div class="attr-label">${label}</div>
+          <table class="daily-table attr-table">
+            <thead><tr><th>分組</th><th>N</th><th>結算</th><th>勝率</th><th>平均報酬</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+      }
+      const attrHtml = Object.keys(attr5).length
+        ? `<div class="attr-section">
+            <div class="attr-title">5D 因子歸因（只含已結算，資料量少時僅供參考）</div>
+            <div class="attr-grid">
+              ${renderAttrTable(attr5.score || [], "投研分數")}
+              ${renderAttrTable(attr5.rs_3m || [], "RS 3M 百分位")}
+              ${renderAttrTable(attr5.adx || [], "ADX")}
+              ${renderAttrTable(attr5.financial_audit || [], "財務審計")}
+            </div>
+          </div>`
+        : "";
+
+      return `${notice}
+        <div class="backtest-grid" style="margin-bottom:8px">${horizonCards.join("")}</div>
+        ${tierCards.length ? `<div class="backtest-grid" style="margin-bottom:8px">${tierCards.join("")}</div>` : ""}
+        ${attrHtml}
+        ${table}`;
+    }
+
+    function renderTwFullMarketStatus(status) {
+      const definition = status.definition || {};
+      const included = (definition.included || []).join(", ");
+      twFullMarketMeta.textContent = `${definition.name || "Taiwan full market"} · ${definition.purpose || "Persistent monitoring universe"}`;
+      twFullMarketHealth.innerHTML = [
+        renderProgressCard("Universe", `${status.universe_count || 0}`, included),
+        renderProgressCard("Snapshots", `${status.snapshot_symbol_count || 0}`, `${status.snapshot_coverage_percent || 0}% coverage`),
+        renderProgressCard("Tradable quotes", `${status.tradable_quote_count || 0}`, `${status.tradable_quote_coverage_percent || 0}% quote coverage`),
+        renderProgressCard("No quote gaps", `${status.no_quote_count || 0}`, definition.no_quote_policy || "Kept in membership until quote exists"),
+      ].join("");
+    }
+
+    function renderStrictShortlistCard(item) {
+      return `
+        <article class="opportunity-card ${item.tier === "core_watch" ? "medium" : ""}">
+          <div class="card-head">
+            <div>
+              <div class="symbol">
+                <strong>${item.symbol}</strong>
+                <span class="tag">${item.tier || "-"}</span>
+                <span class="tag">${item.market || "-"}</span>
+              </div>
+              <div class="name">${item.name || ""}</div>
+            </div>
+            <div class="priority"><span>${item.score ?? "-"}</span><small>score</small></div>
+          </div>
+          <div class="metrics">
+            <div class="metric"><span>Price</span><b>${value(item.price)}</b></div>
+            <div class="metric"><span>1D</span><b>${signed(item.change_1d)}</b></div>
+            <div class="metric"><span>5D</span><b>${signed(item.change_5d)}</b></div>
+            <div class="metric"><span>RS 3M</span><b>${value(item.rs_3m_percentile)}</b></div>
+            <div class="metric"><span>ADX</span><b>${value(item.adx_14)}</b></div>
+            <div class="metric"><span>Volume</span><b>${compact.format(Number(item.volume || 0))}</b></div>
+            <div class="metric"><span>Financial</span><b>${item.financial_audit_status || "-"}</b></div>
+            <div class="metric"><span>Data</span><b>${item.data_confidence || "-"} · ${value(Number(item.data_coverage || 0) * 100, "%")}</b></div>
+            ${item.persistence_score != null ? `<div class="metric"><span>Persist</span><b class="persist-val">${item.persistence_score}</b></div>` : ""}
+          </div>
+          <div class="risk">
+            <b>Research note</b>
+            <p>${item.thesis || "Strict full-market research candidate."}</p>
+          </div>
+          ${renderChecklistBadge(item.symbol)}
+          <button class="secondary" data-open-symbol="${item.symbol}">Open manual research</button>
+        </article>
+      `;
+    }
+
+    async function loadTwFullMarketShortlist() {
+      try {
+        const [response, checklistResponse, remediationResponse] = await Promise.all([
+          fetch("/api/opportunities/tw-full-market/shortlist?limit=12"),
+          fetch("/api/recommendation/pre-trade-checklist?limit=12"),
+          fetch("/api/universe/tw-full-market/gaps/remediation"),
+        ]);
+        const payload = await response.json();
+        const checklist = await checklistResponse.json();
+        const remediation = await remediationResponse.json();
+        if (!response.ok) throw new Error(payload.error || "Full-market shortlist load failed.");
+        if (!checklistResponse.ok) throw new Error(checklist.error || "Pre-trade checklist load failed.");
+        if (!remediationResponse.ok) throw new Error(remediation.error || "No-quote remediation load failed.");
+        preTradeChecklistBySymbol = new Map((checklist.items || []).map(item => [item.symbol, item]));
+        renderTwFullMarketStatus(payload.status || {});
+        twFullMarketHealth.innerHTML += renderRemediationSummary(remediation);
+        twShortlistMeta.textContent = `${payload.counts?.strict_candidate_count || 0} strict candidates · ${payload.counts?.core_watch_count || 0} core watch · ${payload.counts?.research_watch_count || 0} research watch`;
+        const stockSegment = payload.segments?.stock || {};
+        const etfSegment = payload.segments?.etf || {};
+        twShortlistMeta.textContent = `${payload.counts?.strict_candidate_count || 0} strict candidates · stocks ${stockSegment.count || 0} (${stockSegment.core_watch_count || 0} core) · ETFs ${etfSegment.count || 0} (${etfSegment.core_watch_count || 0} core) · research ${payload.counts?.research_watch_count || 0}`;
+        twShortlistResults.innerHTML = payload.shortlist?.length
+          ? payload.shortlist.map(renderStrictShortlistCard).join("")
+          : `<div class="empty">No strict candidates currently pass the filters.</div>`;
+      } catch (error) {
+        twFullMarketMeta.textContent = error.message;
+        twFullMarketHealth.innerHTML = `<div class="empty">${error.message}</div>`;
+        twShortlistMeta.textContent = error.message;
+        twShortlistResults.innerHTML = `<div class="empty">${error.message}</div>`;
+      }
+    }
+
+    function renderActiveEtfSourceStatus(status) {
+      const audit = status.latest_audit || {};
+      const holding = status.latest_holding || {};
+      const change = status.latest_change || {};
+      const age = status.age_days === null || status.age_days === undefined ? "-" : `${status.age_days} 天`;
+      activeEtfSourceStatus.innerHTML = [
+        renderProgressCard("可用狀態", status.status || "-", `stale=${status.stale ? "yes" : "no"} · age ${age}`),
+        renderProgressCard("最新持股日", holding.latest_trade_date || "-", `${holding.holding_count || 0} 筆 holdings`),
+        renderProgressCard("最新異動日", change.latest_trade_date || "-", `${change.change_count || 0} 筆 changes`),
+        renderProgressCard("最新稽核", audit.status || "-", `${audit.dataset || "-"} · ${audit.imported_at ? new Date(audit.imported_at).toLocaleString("zh-TW") : "-"}`),
+      ].join("");
+      activeEtfSourceMeta.textContent = status.note || "主動式 ETF 來源狀態已更新。";
+    }
+
+    function renderSyncAttempts(attempts = []) {
+      activeEtfSyncAttempts.innerHTML = attempts.length
+        ? attempts.map(item => `<span class="tag">${item.source}: ${item.status}</span>`).join("")
+        : "";
+    }
+
+    function renderDataAudit(row) {
+      const importedAt = row.imported_at ? new Date(row.imported_at).toLocaleString("zh-TW") : "-";
+      const source = row.source_url || row.source_file || row.source_label || "-";
+      const stats = row.stats || {};
+      const statText = Object.entries(stats).slice(0, 4).map(([key, val]) => `${key}: ${val}`).join(" · ");
+      return `
+        <article class="audit-card">
+          <header>
+            <div>
+              <h3>${row.dataset}</h3>
+              <p>${source}</p>
+            </div>
+            <span class="tag">${row.status}</span>
+          </header>
+          <div class="metrics">
+            <div class="metric"><span>匯入時間</span><b>${importedAt}</b></div>
+            <div class="metric"><span>列數</span><b>${row.row_count ?? "-"}</b></div>
+            <div class="metric"><span>新增</span><b>${row.inserted ?? 0}</b></div>
+            <div class="metric"><span>更新</span><b>${row.updated ?? 0}</b></div>
+            <div class="metric"><span>略過</span><b>${row.skipped ?? 0}</b></div>
+            <div class="metric"><span>警告/錯誤</span><b>${row.warning_count ?? 0}/${row.error_count ?? 0}</b></div>
+          </div>
+          <p>${statText || "沒有額外統計。"}</p>
+          <p>${row.markdown_path || ""}</p>
+        </article>
+      `;
+    }
+
+    function renderLatestEtfSignal(row) {
+      const net = Number(row.positive_count || 0) - Number(row.negative_count || 0);
+      return `
+        <article class="backtest-card">
+          <div>
+            <strong>${row.stock_symbol}</strong>
+            <div class="name">${row.stock_name || ""} · 最新 ${row.latest_date || "-"}</div>
+          </div>
+          <div class="backtest-metrics">
+            <div class="metric"><span>ETF 數</span><b>${row.etf_count}</b></div>
+            <div class="metric"><span>新增/加碼</span><b>${row.positive_count}</b></div>
+            <div class="metric"><span>減碼/刪除</span><b>${row.negative_count}</b></div>
+            <div class="metric"><span>淨訊號</span><b>${signed(net, "")}</b></div>
+          </div>
+          <button class="secondary" data-open-symbol="${row.stock_symbol}">進入手動投研</button>
+        </article>
+      `;
+    }
+
+    function schedulerPersistedText(persisted) {
+      if (!persisted) return "DB 未保存";
+      const scan = persisted.last_scan_run_id ? `scan #${persisted.last_scan_run_id}` : "尚無 scan";
+      return `DB ${persisted.cursor_offset ?? 0} · ${persisted.source || "-"} · ${scan}`;
+    }
+
+    function renderOutcomeSummary(payload) {
+      const summary = payload.summary || [];
+      const byHorizon = new Map();
+      for (const row of summary) {
+        const horizon = row.horizon_days || 0;
+        if (!byHorizon.has(horizon)) {
+          byHorizon.set(horizon, { ready: 0, wins: 0, pending: 0, missing: 0, weightedReturn: 0 });
+        }
+        const item = byHorizon.get(horizon);
+        const count = Number(row.count || 0);
+        if (row.status === "ready") {
+          item.ready += count;
+          item.wins += Number(row.win_count || 0);
+          item.weightedReturn += Number(row.avg_return_percent || 0) * count;
+        } else if (row.status === "pending") {
+          item.pending += count;
+        } else if (row.status === "missing_price") {
+          item.missing += count;
+        }
+      }
+      if (!byHorizon.size) {
+        outcomeSummary.innerHTML = `<div class="empty">尚無推薦追蹤資料</div>`;
+        return;
+      }
+      outcomeSummary.innerHTML = [...byHorizon.entries()].sort((a, b) => a[0] - b[0]).map(([horizon, item]) => {
+        const winRate = item.ready ? `${fmt.format(item.wins / item.ready * 100)}%` : "-";
+        const avgReturn = item.ready ? `${fmt.format(item.weightedReturn / item.ready)}%` : "-";
+        return renderProgressCard(`${horizon} 天 outcome`, winRate, `ready ${item.ready} · wins ${item.wins} · avg ${avgReturn} · pending ${item.pending} · missing ${item.missing}`);
+      }).join("");
+    }
+
+    function renderAttributionCard(title, item) {
+      const winRate = item.win_rate === null || item.win_rate === undefined ? "-" : `${fmt.format(Number(item.win_rate) * 100)}%`;
+      const avgReturn = item.avg_return_percent === null || item.avg_return_percent === undefined ? "-" : `${fmt.format(item.avg_return_percent)}%`;
+      const worst = item.worst_return_percent === null || item.worst_return_percent === undefined ? "-" : `${fmt.format(item.worst_return_percent)}%`;
+      return renderProgressCard(title, `${item.label}`, `${item.group_type} · n=${item.count} · win ${winRate} · avg ${avgReturn} · worst ${worst}`);
+    }
+
+    function renderOutcomeAttribution(payload) {
+      const worst = payload.worst || [];
+      const best = payload.best || [];
+      const cards = [
+        ...worst.slice(0, 3).map(item => renderAttributionCard("較差條件", item)),
+        ...best.slice(0, 3).map(item => renderAttributionCard("較佳條件", item)),
+      ];
+      outcomeAttribution.innerHTML = cards.length
+        ? cards.join("")
+        : `<div class="empty">ready 樣本不足，暫無條件歸因</div>`;
+    }
+
+    function renderDailyLogHistory(payload) {
+      const summary = payload.summary || {};
+      const tiers = summary.tier_counts || {};
+      const topSymbols = summary.top_symbols || [];
+      const cards = [
+        renderProgressCard("Daily logs", payload.log_count || 0, `file ${payload.path || "-"} · parse errors ${payload.parse_errors || 0}`),
+        renderProgressCard("Logged candidates", summary.recommendation_count || 0, `core ${tiers.core_watch || 0} · research ${tiers.research_watch || 0}`),
+      ];
+      for (const item of topSymbols.slice(0, 4)) {
+        cards.push(renderProgressCard(
+          item.symbol || "-",
+          `${item.count || 0}x`,
+          `${item.tier || "-"} · ${item.latest_date || "-"} · score ${item.latest_score ?? "-"} · price ${item.latest_price ?? "-"}`
+        ));
+      }
+      dailyLogSummary.innerHTML = cards.length ? cards.join("") : `<div class="empty">No daily recommendation logs yet</div>`;
+    }
+
+    async function loadDailyLogHistory() {
+      try {
+        const [response, performanceResponse] = await Promise.all([
+          fetch("/api/recommendations/daily-log/history?limit=20"),
+          fetch("/api/recommendations/daily-log/performance?limit=100"),
+        ]);
+        const payload = await response.json();
+        const performance = await performanceResponse.json();
+        if (!response.ok) throw new Error(payload.error || "Daily recommendation log load failed.");
+        if (!performanceResponse.ok) throw new Error(performance.error || "Daily recommendation performance load failed.");
+        renderDailyLogHistory(payload);
+        dailyLogSummary.innerHTML += renderDailyPerformance(performance);
+        dailyLogMeta.textContent = `Loaded ${payload.log_count || 0} daily logs from ${payload.path || "-"}.`;
+      } catch (error) {
+        dailyLogMeta.textContent = error.message;
+        dailyLogSummary.innerHTML = `<div class="empty">${error.message}</div>`;
+      }
+    }
+
+    // ===== 每日推薦分頁 =====
+    let dailyRecordsCache = null;
+    let dailyPersistenceCache = null;
+
+    function escHtml(value) {
+      return String(value == null ? "" : value).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    }
+    function pct(value) {
+      const num = Number(value);
+      if (value == null || Number.isNaN(num)) return { text: "-", cls: "" };
+      return { text: `${num >= 0 ? "+" : ""}${fmt.format(num)}%`, cls: num >= 0 ? "pos" : "neg" };
+    }
+    function num(value, digits) {
+      const n = Number(value);
+      if (value == null || Number.isNaN(n)) return "-";
+      return new Intl.NumberFormat("zh-TW", { maximumFractionDigits: digits == null ? 1 : digits }).format(n);
+    }
+    function tierPill(tier) {
+      if (tier === "core_watch") return `<span class="tier-pill tier-core">核心</span>`;
+      if (tier === "research_watch") return `<span class="tier-pill tier-research">研究</span>`;
+      return `<span class="tier-pill tier-research">${escHtml(tier || "-")}</span>`;
+    }
+    function auditCell(status) {
+      const map = { pass: ["pass", "audit-pass"], warn: ["warn", "audit-warn"], block: ["block", "audit-block"], not_applicable: ["n/a", ""] };
+      const entry = map[status] || [status || "-", ""];
+      return `<span class="${entry[1]}">${escHtml(entry[0])}</span>`;
+    }
+
+    function renderDailyDayTable(record) {
+      const host = document.querySelector("#dailyDayTable");
+      const summaryHost = document.querySelector("#dailyDaySummary");
+      if (!record) { host.innerHTML = `<div class="empty">這天沒有紀錄</div>`; summaryHost.innerHTML = ""; return; }
+      const recs = record.recommendations || [];
+      const counts = record.counts || {};
+      const core = recs.filter(r => r.tier === "core_watch").length;
+      const research = recs.filter(r => r.tier === "research_watch").length;
+      summaryHost.innerHTML = [
+        renderProgressCard("推薦日期", record.date || "-", `產生於 ${(record.generated_at || "").slice(0, 19).replace("T", " ")}`),
+        renderProgressCard("嚴格候選", recs.length, `核心 ${core} · 研究 ${research}`),
+        renderProgressCard("涵蓋率", `${num(counts.snapshot_coverage_percent ?? record.snapshot_coverage_percent, 2)}%`, `scope ${escHtml(record.scope || "-")}`),
+      ].join("");
+      if (!recs.length) { host.innerHTML = `<div class="empty">這天沒有推薦標的</div>`; return; }
+      const rows = recs.map((r, i) => {
+        const c1 = pct(r.change_1d), c5 = pct(r.change_5d);
+        return `<tr>
+          <td>${i + 1}</td>
+          <td><span class="sym-link" data-open-symbol="${escHtml(r.symbol)}">${escHtml(r.symbol)}</span></td>
+          <td>${escHtml(r.name || "-")}</td>
+          <td>${tierPill(r.tier)}</td>
+          <td>${num(r.score, 0)}</td>
+          <td>${num(r.price, 2)}</td>
+          <td class="${c1.cls}">${c1.text}</td>
+          <td class="${c5.cls}">${c5.text}</td>
+          <td>${num(r.rs_3m_percentile, 0)}</td>
+          <td>${num(r.adx_14, 1)}</td>
+          <td>${num(r.volume, 0)}</td>
+          <td>${auditCell(r.financial_audit_status)}</td>
+          <td class="thesis">${escHtml(r.thesis || "")}</td>
+        </tr>`;
+      }).join("");
+      host.innerHTML = `<table class="daily-table">
+        <thead><tr>
+          <th>#</th><th>代號</th><th>名稱</th><th>分級</th><th>分數</th><th>價格</th>
+          <th>1D</th><th>5D</th><th>RS3M</th><th>ADX</th><th>量</th><th>稽核</th><th>論點</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+    }
+
+    function renderDailyCountTrend(records) {
+      const host = document.querySelector("#dailyCountTrend");
+      const asc = records.slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
+      if (!asc.length) { host.innerHTML = `<div class="empty">尚無資料</div>`; return; }
+      const max = Math.max(...asc.map(r => (r.recommendations || []).length), 1);
+      host.innerHTML = asc.map(r => {
+        const recs = r.recommendations || [];
+        const core = recs.filter(x => x.tier === "core_watch").length;
+        const research = recs.filter(x => x.tier === "research_watch").length;
+        const width = Math.round((recs.length / max) * 100);
+        return `<div class="trend-row">
+          <div>${escHtml(r.date || "-")}</div>
+          <div class="trend-bar-track"><div class="trend-bar" style="width:${width}%"></div></div>
+          <div class="trend-meta">${recs.length} 檔 · 核心 ${core} · 研究 ${research}</div>
+        </div>`;
+      }).join("");
+    }
+
+    function renderDailySymbolTrend(records, symbol) {
+      const host = document.querySelector("#dailySymbolTrend");
+      if (!symbol) { host.innerHTML = `<div class="empty">請選擇個股</div>`; return; }
+      const asc = records.slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
+      const points = [];
+      for (const r of asc) {
+        const hit = (r.recommendations || []).find(x => x.symbol === symbol);
+        if (hit) points.push({ date: r.date, score: hit.score, price: hit.price, tier: hit.tier, c1: hit.change_1d });
+      }
+      if (!points.length) { host.innerHTML = `<div class="empty">${escHtml(symbol)} 沒有上榜紀錄</div>`; return; }
+      const spark = points.map(p => num(p.score, 0)).join(" → ");
+      const rows = points.map(p => {
+        const c1 = pct(p.c1);
+        return `<div class="trend-row">
+          <div>${escHtml(p.date)}</div>
+          <div>${tierPill(p.tier)} <b>分數 ${num(p.score, 0)}</b></div>
+          <div class="trend-meta">價 ${num(p.price, 2)} · 1D <span class="${c1.cls}">${c1.text}</span></div>
+        </div>`;
+      }).join("");
+      host.innerHTML = `<div class="spark" style="margin-bottom:10px"><strong>${escHtml(symbol)}</strong> 分數走勢：${spark}（上榜 ${points.length} 天）</div>${rows}`;
+    }
+
+    function computeSymbolPersistence(records) {
+      const asc = records.slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
+      const map = new Map();
+      for (const r of asc) {
+        for (const x of (r.recommendations || [])) {
+          if (!x.symbol) continue;
+          let e = map.get(x.symbol);
+          if (!e) { e = { symbol: x.symbol, name: x.name || "", days: 0, dates: [], scores: [] }; map.set(x.symbol, e); }
+          e.days += 1;
+          e.dates.push(r.date);
+          e.scores.push(x.score);
+          e.name = x.name || e.name;
+          e.latestDate = r.date;
+          e.latestScore = x.score;
+          e.latestTier = x.tier;
+        }
+      }
+      return [...map.values()].sort((a, b) =>
+        (b.days - a.days) || String(b.latestDate).localeCompare(String(a.latestDate)) || a.symbol.localeCompare(b.symbol));
+    }
+
+    function trendArrow(item) {
+      const a = Number(item.score_first), b = Number(item.score_last);
+      if (Number.isNaN(a) || Number.isNaN(b) || a === b) return "→";
+      return b > a ? "↗" : "↘";
+    }
+    function renderDailyPersistence(payload, minDays) {
+      const host = document.querySelector("#dailyPersistence");
+      const meta = document.querySelector("#dailyPersistenceMeta");
+      const items = (payload && payload.items) || [];
+      const totalDays = payload.logged_days || 0;
+      const repeated = items.filter(e => e.appearances >= 2).length;
+      const oneDay = payload.one_day_only_count != null ? payload.one_day_only_count : items.filter(e => e.appearances === 1).length;
+      meta.textContent = `持續性指標(0-100) · 共 ${totalDays} 天紀錄 · 重複上榜 ${repeated} 檔 · 只出現一天 ${oneDay} 檔（視為雜訊，不列入）`;
+      const persistent = items.filter(e => e.appearances >= minDays);
+      if (!persistent.length) {
+        host.innerHTML = `<div class="empty">目前沒有上榜 ${minDays} 天以上的個股（需要累積更多天數）</div>`;
+        return;
+      }
+      host.innerHTML = persistent.map(e => {
+        const spark = (e.scores || []).map(s => num(s, 0)).join(" → ");
+        const detail = `上榜 ${e.appearances}/${e.logged_days} 天 · 連續 ${e.streak} · 均分 ${num(e.avg_score, 0)} · 趨勢 ${trendArrow(e)} · 涵蓋 ${num(e.coverage_percent, 0)}%`;
+        return `<div class="trend-row persist-row">
+          <div><b class="persist-score">${num(e.persistence_score, 1)}</b></div>
+          <div>
+            <span class="sym-link" data-trend-symbol="${escHtml(e.symbol)}">${escHtml(e.symbol)}</span>
+            ${tierPill(e.latest_tier)} ${escHtml(e.name || "")}
+            <div class="trend-meta">${detail} · <span class="spark">${spark}</span></div>
+          </div>
+          <div class="trend-meta">${e.in_latest_log ? "✓ 最新仍在榜" : "✕ 最新未在榜"}</div>
+        </div>`;
+      }).join("");
+    }
+
+    function populateDailyDateSelect(records) {
+      const sel = document.querySelector("#dailyDateSelect");
+      sel.innerHTML = records.map(r => `<option value="${escHtml(r.date)}">${escHtml(r.date)}（${(r.recommendations || []).length} 檔）</option>`).join("");
+    }
+    function populateDailySymbolSelect(records, preferred) {
+      const sel = document.querySelector("#dailySymbolSelect");
+      const all = computeSymbolPersistence(records);
+      sel.innerHTML = all.map(e =>
+        `<option value="${escHtml(e.symbol)}">${escHtml(e.symbol)}${e.name ? " · " + escHtml(e.name) : ""}（上榜 ${e.days} 天）</option>`).join("");
+      if (preferred && all.some(e => e.symbol === preferred)) sel.value = preferred;
+    }
+
+    async function loadDailyRecommendations(force = false) {
+      const meta = document.querySelector("#dailyRecMeta");
+      if (dailyRecordsCache && !force) return;
+      meta.textContent = "讀取每日推薦中...";
+      try {
+        const res = await fetch("/api/recommendations/daily-log/history?limit=60");
+        const payload = await res.json();
+        if (!res.ok) throw new Error(payload.error || "每日推薦讀取失敗");
+        const byDate = new Map();
+        for (const r of (payload.records || [])) {
+          const prev = byDate.get(r.date);
+          if (!prev || String(r.generated_at || "") > String(prev.generated_at || "")) byDate.set(r.date, r);
+        }
+        const records = [...byDate.values()].sort((a, b) => String(b.date).localeCompare(String(a.date)));
+        dailyRecordsCache = records;
+        if (!records.length) {
+          meta.textContent = "目前還沒有每日推薦紀錄";
+          document.querySelector("#dailyDayTable").innerHTML = `<div class="empty">尚無每日推薦</div>`;
+          document.querySelector("#dailyDaySummary").innerHTML = "";
+          document.querySelector("#dailyCountTrend").innerHTML = `<div class="empty">尚無資料</div>`;
+          document.querySelector("#dailySymbolTrend").innerHTML = `<div class="empty">尚無資料</div>`;
+          return;
+        }
+        const latest = records[0];
+        let persistencePayload = { items: [] };
+        let perfPayload = null;
+        const [pres, perfRes] = await Promise.all([
+          fetch("/api/recommendations/persistence?days=60&min_days=2").catch(() => null),
+          fetch("/api/recommendations/daily-log/performance").catch(() => null),
+        ]);
+        try {
+          if (pres) {
+            persistencePayload = await pres.json();
+            if (!pres.ok) throw new Error(persistencePayload.error || "持續性指標讀取失敗");
+          }
+        } catch (e) { persistencePayload = { items: [], error: e.message }; }
+        try {
+          if (perfRes && perfRes.ok) perfPayload = await perfRes.json();
+        } catch (e) { /* performance data is non-critical */ }
+        dailyPersistenceCache = persistencePayload;
+        const defaultSymbol = (persistencePayload.items || [])[0]?.symbol || (latest.recommendations || [])[0]?.symbol;
+        populateDailyDateSelect(records);
+        populateDailySymbolSelect(records, defaultSymbol);
+        renderDailyDayTable(latest);
+        renderDailyCountTrend(records);
+        renderDailyPersistence(persistencePayload, Number(document.querySelector("#dailyMinDays").value || 2));
+        renderDailySymbolTrend(records, document.querySelector("#dailySymbolSelect").value);
+        const perfMeta = document.querySelector("#dailyPerfMeta");
+        const perfContent = document.querySelector("#dailyPerfContent");
+        if (perfPayload) {
+          const ready5d = (perfPayload.rows || []).filter(r => r.horizon_days === 5 && r.status === "ready").length;
+          perfContent.innerHTML = renderDailyPerf(perfPayload);
+          perfMeta.textContent = `log_count=${perfPayload.log_count || 0} · 5D ready=${ready5d}`;
+        } else {
+          perfMeta.textContent = "績效資料讀取失敗";
+          perfContent.innerHTML = `<div class="empty">無法載入績效資料</div>`;
+        }
+        meta.textContent = `共 ${records.length} 天紀錄 · 來源 ${payload.path || "-"}`;
+      } catch (error) {
+        meta.textContent = error.message;
+      }
+    }
+
+    let watchlistRefreshTimer = null;
+
+    function renderWatchlistAlerts(payload) {
+      const alerts = payload.alerts || [];
+      if (!alerts.length) {
+        return `<div class="alert-empty">過去 24 小時內無警示。監控中的名單出現單日變動 ≥2% 時會在此顯示。</div>`;
+      }
+      return alerts.map(a => {
+        const isUp = a.kind === "price_move_up";
+        const retCls = isUp ? "alert-up" : "alert-down";
+        const direction = isUp ? "▲" : "▼";
+        const timeStr = a.triggered_at ? new Date(a.triggered_at).toLocaleString("zh-TW") : "-";
+        const tierCls = a.tier === "core_watch" ? "tier-pill tier-core" : "tier-pill tier-research";
+        const analysisNote = a.snapshot_id ? " · 已觸發完整分析" : "";
+        return `<div class="alert-row">
+          <span class="trend-meta">${timeStr}</span>
+          <span><b>${escHtml(a.symbol)}</b> ${a.tier ? `<span class="${tierCls}">${a.tier === "core_watch" ? "核心" : "研究"}</span>` : ""}</span>
+          <span class="${retCls}">${direction} ${a.change_pct > 0 ? "+" : ""}${(a.change_pct || 0).toFixed(1)}%</span>
+          <span class="trend-meta">${escHtml(a.detail || "")}${analysisNote}</span>
+        </div>`;
+      }).join("");
+    }
+
+    async function loadWatchlistAlerts(force = false) {
+      const meta = document.querySelector("#watchlistMeta");
+      const statusEl = document.querySelector("#watchlistStatus");
+      const alertsEl = document.querySelector("#watchlistAlerts");
+      try {
+        const [alertRes, statusRes] = await Promise.all([
+          fetch("/api/watchlist/alerts?limit=30&days=1"),
+          fetch("/api/watchlist/status"),
+        ]);
+        const alertPayload = await alertRes.json();
+        const statusPayload = await statusRes.json();
+        alertsEl.innerHTML = renderWatchlistAlerts(alertPayload);
+        meta.textContent = `過去 24 小時 ${alertPayload.count || 0} 筆警示 · 最後更新 ${new Date(alertPayload.generated_at).toLocaleString("zh-TW")}`;
+        const monCount = (statusPayload.symbols_monitored || []).length;
+        const nextRun = statusPayload.next_run_at ? new Date(statusPayload.next_run_at).toLocaleString("zh-TW") : "-";
+        const alive = statusPayload.thread_alive ? "監控中" : "未啟動";
+        statusEl.textContent = `${alive} · 監控 ${monCount} 支 · 下次檢查 ${nextRun} · 門檻 ±${statusPayload.threshold_pct || 2}%`;
+      } catch (e) {
+        meta.textContent = e.message;
+        alertsEl.innerHTML = `<div class="empty">${e.message}</div>`;
+      }
+      // auto-refresh every 2 minutes while on this page
+      clearTimeout(watchlistRefreshTimer);
+      watchlistRefreshTimer = setTimeout(() => loadWatchlistAlerts(), 120000);
+    }
+
+    async function loadOutcomeSummary() {
+      try {
+        const [summaryResponse, attributionResponse] = await Promise.all([
+          fetch("/api/recommendation/outcomes?limit=10"),
+          fetch("/api/recommendation/outcomes/attribution?horizon_days=5&min_count=5"),
+        ]);
+        const payload = await summaryResponse.json();
+        const attribution = await attributionResponse.json();
+        if (!summaryResponse.ok) throw new Error(payload.error || "推薦追蹤讀取失敗");
+        if (!attributionResponse.ok) throw new Error(attribution.error || "推薦歸因讀取失敗");
+        renderOutcomeSummary(payload);
+        renderOutcomeAttribution(attribution);
+        const update = payload.update || {};
+        outcomeMeta.textContent = `已檢查 ${update.checked || 0} 筆，到期更新 ${update.updated || 0} 筆，pending ${update.pending || 0}，missing ${update.missing_price || 0}。5 天 ready ${attribution.ready_count || 0} 筆。`;
+      } catch (error) {
+        outcomeMeta.textContent = error.message;
+        outcomeSummary.innerHTML = `<div class="empty">${error.message}</div>`;
+        outcomeAttribution.innerHTML = `<div class="empty">${error.message}</div>`;
+      }
+    }
+
+    function renderFinancialAudit(payload) {
+      const counts = payload.status_counts || {};
+      const records = payload.records || [];
+      const rules = payload.rules || {};
+      const flagged = records.filter(row => ["block", "warn"].includes(row.status)).slice(0, 4);
+      const cards = [
+        renderProgressCard("財務資料 Pass", counts.pass || 0, "可用且未見重大缺口"),
+        renderProgressCard("財務資料 Warn", counts.warn || 0, "部分缺口或期間需注意"),
+        renderProgressCard("財務資料 Block", counts.block || 0, "不可用於支撐基本面判斷"),
+        renderProgressCard("不適用", counts.not_applicable || 0, "ETF/商品/加密等非傳統公司財報"),
+        renderProgressCard("Pass 規則", "可用", (rules.pass || []).slice(0, 2).join(" · ")),
+        renderProgressCard("Warn 規則", "降級", (rules.warn || []).slice(0, 2).join(" · ")),
+        renderProgressCard("Block 規則", "禁止候選", (rules.block || []).slice(0, 2).join(" · ")),
+        ...flagged.map(row => {
+          const missing = (row.critical_missing || []).join(", ") || (row.stale_flags || []).join(", ") || "需人工檢查";
+          return renderProgressCard(`${row.symbol} ${row.status}`, row.source || "-", `${missing}`);
+        }),
+      ];
+      financialAuditSummary.innerHTML = cards.join("");
+    }
+
+    async function loadFinancialAudit() {
+      try {
+        const response = await fetch("/api/data/financial-audit?limit=80");
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "財務資料稽核讀取失敗");
+        renderFinancialAudit(payload);
+        financialAuditMeta.textContent = `已稽核 ${payload.count || 0} 筆最新 snapshots。${payload.rule || ""}`;
+      } catch (error) {
+        financialAuditMeta.textContent = error.message;
+        financialAuditSummary.innerHTML = `<div class="empty">${error.message}</div>`;
+      }
+    }
+
+    async function loadLatestDashboard() {
+      refreshLatestButton.disabled = true;
+      try {
+        const response = await fetch("/api/dashboard/latest");
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "最新進度讀取失敗");
+        const scheduler = payload.scheduler || {};
+        const coverage = payload.coverage || {};
+        const aegisSnapshot = payload.aegis_snapshot || {};
+        const etfSchedule = payload.active_etf_schedule || {};
+        const latestScan = payload.latest_scan || {};
+        const persistedScheduler = scheduler.persisted || null;
+        const aegisPrice = aegisSnapshot.price_daily || {};
+        const aegisRevenue = aegisSnapshot.revenue_monthly || {};
+        const aegisEps = aegisSnapshot.eps_quarterly || {};
+        renderDataHealth(payload.data_health || {});
+        const nextRun = scheduler.next_run_at ? new Date(scheduler.next_run_at).toLocaleString("zh-TW") : "-";
+        const lastRun = scheduler.last_run_at ? new Date(scheduler.last_run_at).toLocaleString("zh-TW") : "-";
+        const aegisCopied = aegisSnapshot.copied_at ? new Date(aegisSnapshot.copied_at).toLocaleString("zh-TW") : "-";
+        latestMeta.textContent = `最後更新 ${new Date(payload.generated_at).toLocaleString("zh-TW")} · ${payload.disclaimer}`;
+        latestHealth.innerHTML = [
+          renderProgressCard("輪巡健康", scheduler.healthy ? "正常" : "異常", `thread ${scheduler.thread_alive ? "alive" : "stopped"} · overdue ${scheduler.overdue_seconds || 0}s`),
+          renderProgressCard("下次輪巡", nextRun, `上次 ${lastRun}`),
+          renderProgressCard("最新 Scan", latestScan.id ? `#${latestScan.id}` : "-", `掃 ${latestScan.scanned_count || 0} 檔 · 機會 ${latestScan.opportunity_count || 0}`),
+          renderProgressCard("水池覆蓋", `${coverage.snapshot_coverage_percent || 0}%`, `${coverage.snapshot_symbol_count || 0}/${coverage.universe_count || 0} 檔有 snapshot`),
+          renderProgressCard("24h 更新", `${coverage.updated_24h_count || 0} 檔`, `尚未掃描 ${coverage.unsnapped_count || 0} 檔`),
+          renderProgressCard("探索游標", `${scheduler.cursor_offset || 0}`, `${schedulerPersistedText(persistedScheduler)} · 水池 ${coverage.universe_count || 0} 檔`),
+          renderProgressCard("ETF 異動排程", `${(etfSchedule.completed_slots || []).length}/${(etfSchedule.slots || []).length}`, `今日 ${etfSchedule.today || "-"} · 時段 ${(etfSchedule.slots || []).join(", ") || "-"}`),
+        ].join("");
+        latestHealth.innerHTML += [
+          renderProgressCard("Aegis Snapshot", aegisSnapshot.available ? (aegisSnapshot.stale ? "需注意" : "可用") : "缺資料", `copied ${aegisCopied} · age ${aegisSnapshot.copied_age_hours ?? "-"}h`),
+          renderProgressCard("台股價量", aegisPrice.latest_date || "-", `${aegisPrice.stock_count || 0} 檔 · ${aegisPrice.row_count || 0} 筆`),
+          renderProgressCard("台股營收", aegisRevenue.latest_yyyymm || "-", `${aegisRevenue.stock_count || 0} 檔 · ${aegisRevenue.row_count || 0} 筆`),
+          renderProgressCard("台股 EPS", aegisEps.latest_period || "-", `${aegisEps.stock_count || 0} 檔 · ${aegisEps.row_count || 0} 筆`),
+        ].join("");
+        latestOpportunities.innerHTML = payload.opportunities?.length
+          ? payload.opportunities.map(renderOpportunity).join("")
+          : `<div class="empty">最新 scan 沒有達到門檻的推薦候選</div>`;
+        latestEtfSignals.innerHTML = payload.active_etf?.stock_summary?.length
+          ? payload.active_etf.stock_summary.map(renderLatestEtfSignal).join("")
+          : `<div class="empty">目前沒有主動式 ETF 線索</div>`;
+        await Promise.all([loadTwFullMarketShortlist(), loadOutcomeSummary(), loadDailyLogHistory(), loadFinancialAudit()]);
+      } catch (error) {
+        latestMeta.textContent = error.message;
+        latestHealth.innerHTML = `<div class="empty">${error.message}</div>`;
+      } finally {
+        refreshLatestButton.disabled = false;
+      }
+    }
+
+    function signed(v, suffix = "%") {
+      if (v === null || v === undefined || Number.isNaN(Number(v))) return "-";
+      const n = Number(v);
+      return `${n > 0 ? "+" : ""}${fmt.format(n)}${suffix}`;
+    }
+
+    function renderBacktestCard(item) {
+      const last = item.latest_observation || {};
+      return `
+        <article class="backtest-card">
+          <div>
+            <strong>${item.symbol}</strong>
+            <div class="name">${item.strategy} · ${item.tested_days} 天 · 交易 ${item.trades} 次</div>
+          </div>
+          <div class="backtest-metrics">
+            <div class="metric"><span>策略報酬</span><b>${signed(item.total_return)}</b></div>
+            <div class="metric"><span>買進持有</span><b>${signed(item.benchmark_return)}</b></div>
+            <div class="metric"><span>超額</span><b>${signed(item.excess_return)}</b></div>
+            <div class="metric"><span>最大回撤</span><b>${signed(item.max_drawdown)}</b></div>
+            <div class="metric"><span>年化波動</span><b>${value(item.annualized_volatility, "%")}</b></div>
+            <div class="metric"><span>最終部位</span><b>${value((item.final_position || 0) * 100, "%")}</b></div>
+          </div>
+          <div class="risk">
+            <b>最近訊號</b>
+            <p>分數 ${last.score ?? "-"}，部位 ${value((last.position || 0) * 100, "%")}。回測未納入歷史新聞與滑價。</p>
+          </div>
+        </article>
+      `;
+    }
+
+    function renderAgentReport(report) {
+      const gaps = report.data_gaps?.length ? `資料缺口：${report.data_gaps.join("、")}` : "資料缺口：無重大缺口";
+      const llmBlock = report.llm_insight
+        ? `<div class="llm-insight"><span class="llm-badge">LLM</span>${report.llm_insight}</div>`
+        : report.llm_error
+          ? `<div class="llm-insight llm-error"><span class="llm-badge">LLM</span>呼叫失敗：${report.llm_error}</div>`
+          : "";
+      return `
+        <article class="agent-card">
+          <h3>${report.agent}</h3>
+          <p><b>${report.title}</b></p>
+          <p>${report.verdict}</p>
+          <ul>
+            ${(report.bullets || []).slice(0, 5).map(line => `<li>${line}</li>`).join("")}
+          </ul>
+          <p>${gaps}</p>
+          ${llmBlock}
+        </article>
+      `;
+    }
+
+    function renderResearchSymbol(item) {
+      return `
+        <article class="research-symbol">
+          <div class="card-head">
+            <div>
+              <div class="symbol">
+                <strong>${item.symbol}</strong>
+                <span class="tag">snapshot #${item.snapshot_id}</span>
+              </div>
+              <div class="name">${item.name} · 分數 ${item.score} · ${item.action}</div>
+            </div>
+          </div>
+          <div class="agent-grid">
+            ${item.reports.map(renderAgentReport).join("")}
+          </div>
+        </article>
+      `;
+    }
+
+    async function analyze() {
+      const symbols = symbolsInput.value.trim();
+      if (!symbols) return;
+      analyzeButton.disabled = true;
+      statusEl.textContent = "抓取行情、新聞與基本資料中...";
+      results.innerHTML = "";
+      alertsEl.innerHTML = `<div class="empty">分析中</div>`;
+      try {
+        const params = new URLSearchParams({ symbols });
+        if (thresholdInput.value) params.set("threshold", thresholdInput.value);
+        const response = await fetch(`/api/analyze?${params.toString()}`);
+        const payload = await response.json();
+        if (!response.ok && !payload.results?.length) {
+          throw new Error(payload.error || payload.errors?.[0]?.message || "分析失敗");
+        }
+        results.innerHTML = payload.results.map(renderCard).join("");
+        payload.results.forEach(item => {
+          if (item.chart && item.chart.length >= 5) {
+            const canvas = document.getElementById('kline-' + item.symbol.replace(/\W/g, '-'));
+            if (canvas) renderCandlestickChart(canvas, item.chart);
+          }
+        });
+        renderAlerts(payload.results);
+        const errorText = payload.errors?.length
+          ? `部分代號失敗：${payload.errors.map(e => `${e.symbol} ${e.message}`).join("；")}`
+          : "";
+        const savedCount = (payload.saved_snapshots || []).filter(row => row.snapshot_id).length;
+        const savedText = savedCount ? `已保存 ${savedCount} 筆歷史快照。` : "本次未保存快照。";
+        statusEl.textContent = `${savedText} ${payload.disclaimer} ${errorText}`;
+        stamp.textContent = `最後更新：${new Date().toLocaleString("zh-TW")} · 耗時 ${payload.elapsed_seconds}s`;
+      } catch (error) {
+        results.innerHTML = `<div class="empty">${error.message}</div>`;
+        statusEl.textContent = "請確認網路連線與投資代號格式。";
+      } finally {
+        analyzeButton.disabled = false;
+      }
+    }
+
+    async function scanMarket() {
+      scanButton.disabled = true;
+      scanMeta.textContent = "掃描 universe 中，抓取行情、新聞與風險訊號...";
+      scanResults.innerHTML = `<div class="empty">掃描中</div>`;
+      try {
+        const params = new URLSearchParams({
+          limit: scanLimitInput.value || "25",
+          min_priority: minPriorityInput.value || "25",
+          refresh_minutes: refreshMinutesInput.value || "60",
+          scope: "tw_full_market",
+        });
+        if (scanAssetInput.value) params.set("asset_type", scanAssetInput.value);
+        if (thresholdInput.value) params.set("threshold", thresholdInput.value);
+        const response = await fetch(`/api/scan?${params.toString()}`);
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error || payload.errors?.[0]?.message || "掃描失敗");
+        }
+        scanResults.innerHTML = payload.opportunities.length
+          ? payload.opportunities.map(renderOpportunity).join("")
+          : `<div class="empty">本次沒有達到優先門檻的機會</div>`;
+        const availableCount = payload.available_universe_count || payload.universe_count;
+        const capNote = Number(scanLimitInput.value || 0) > availableCount
+          ? ` · 目前候選池只有 ${availableCount} 檔，所以不會掃到更多`
+          : "";
+        const rangeText = availableCount
+          ? `第 ${Number(payload.offset || 0) + 1}-${Number(payload.offset || 0) + payload.scanned_count} 檔 / ${availableCount}`
+          : `${payload.scanned_count}/${payload.universe_count} 檔`;
+        scanMeta.textContent = `scan #${payload.scan_run_id} · 掃描 ${rangeText} · 快取 ${payload.cache_hits} 檔 · 刷新 ${payload.refreshed_count} 檔 · 機會 ${payload.opportunities.length} 筆 · 耗時 ${payload.elapsed_seconds}s${capNote}`;
+      } catch (error) {
+        scanResults.innerHTML = `<div class="empty">${error.message}</div>`;
+        scanMeta.textContent = "請確認網路連線、候選池與掃描參數。";
+      } finally {
+        scanButton.disabled = false;
+      }
+    }
+
+    async function loadUniverseSummary() {
+      try {
+        const response = await fetch("/api/universe?limit=1000");
+        const payload = await response.json();
+        const universe = payload.universe || [];
+        const counts = universe.reduce((acc, row) => {
+          acc[row.asset_type] = (acc[row.asset_type] || 0) + 1;
+          return acc;
+        }, {});
+        const summary = Object.entries(counts).map(([type, count]) => `${type} ${count}`).join("、");
+        scanMeta.textContent = `目前候選池 ${universe.length} 檔（${summary}）。掃描數量超過候選池總數時，實際仍只會掃 ${universe.length} 檔。雷達優先度代表值得注意，不代表看多。`;
+      } catch (error) {
+        scanMeta.textContent = "目前是候選池掃描，不是真正全市場。候選池數量讀取失敗。";
+      }
+    }
+
+    async function expandUniverse() {
+      expandUniverseButton.disabled = true;
+      scanMeta.textContent = "正在擴大 starter universe...";
+      try {
+        const response = await fetch("/api/universe/expand?profile=starter");
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "擴大候選池失敗");
+        scanMeta.textContent = `候選池已擴大：新增 ${payload.inserted} 檔，已存在 ${payload.existing} 檔，目前啟用 ${payload.enabled_universe_count} 檔。`;
+        await loadUniverseSummary();
+      } catch (error) {
+        scanMeta.textContent = error.message;
+      } finally {
+        expandUniverseButton.disabled = false;
+      }
+    }
+
+    async function importUniverse() {
+      importUniverseButton.disabled = true;
+      scanMeta.textContent = "正在匯入 universe_import.csv...";
+      try {
+        const response = await fetch("/api/universe/import?file=universe_import.csv");
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "匯入候選池失敗");
+        const assetSummary = Object.entries(payload.by_asset || {})
+          .map(([type, count]) => `${type} ${count}`)
+          .join("、");
+        scanMeta.textContent = `CSV 匯入完成：新增 ${payload.inserted} 檔，更新 ${payload.updated} 檔，略過 ${payload.skipped} 列，目前啟用 ${payload.enabled_universe_count} 檔。${assetSummary}`;
+        await loadUniverseSummary();
+      } catch (error) {
+        scanMeta.textContent = error.message;
+      } finally {
+        importUniverseButton.disabled = false;
+      }
+    }
+
+    async function maximizeUniverse() {
+      maximizeUniverseButton.disabled = true;
+      scanMeta.textContent = "正在從 Yahoo Finance screener 最大化水池，這是低頻擴建任務...";
+      try {
+        const response = await fetch("/api/universe/maximize?count=250");
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "最大化水池失敗");
+        const errorText = payload.errors?.length ? ` 部分來源失敗 ${payload.errors.length} 個。` : "";
+        scanMeta.textContent = `水池最大化完成：新增 ${payload.inserted} 檔，更新 ${payload.updated} 檔，目前啟用 ${payload.enabled_universe_count} 檔。${errorText}`;
+        await loadUniverseSummary();
+      } catch (error) {
+        scanMeta.textContent = error.message;
+      } finally {
+        maximizeUniverseButton.disabled = false;
+      }
+    }
+
+    function renderSchedulerStatus(status) {
+      const state = status.enabled ? "已啟動" : "未啟動";
+      const running = status.running ? "執行中" : "待命";
+      const persisted = ` 持久游標：${schedulerPersistedText(status.persisted)}。`;
+      const lastRange = status.last_result?.available_universe_count
+        ? `第 ${Number(status.last_result.offset || 0) + 1}-${Number(status.last_result.offset || 0) + Number(status.last_result.scanned_count || 0)} 檔 / ${status.last_result.available_universe_count}，下次從第 ${Number(status.last_result.next_offset || 0) + 1} 檔開始`
+        : `掃 ${status.last_result?.scanned_count || 0}`;
+      const last = status.last_result
+        ? ` 上次 scan #${status.last_result.scan_run_id}，${lastRange}，核心 ${status.last_result.core_count ?? 0}，探索 ${status.last_result.discovery_count ?? 0}，快取 ${status.last_result.cache_hits}，刷新 ${status.last_result.refreshed_count}，機會 ${status.last_result.opportunity_count}。`
+        : "";
+      const next = status.next_run_at ? ` 下次：${new Date(status.next_run_at).toLocaleString("zh-TW")}。` : "";
+      const error = status.last_error ? ` 錯誤：${status.last_error}` : "";
+      const health = status.healthy === false
+        ? ` 健康：異常，逾時 ${status.overdue_seconds || 0} 秒。`
+        : ` 健康：正常${status.thread_alive ? "，thread alive" : ""}。`;
+      const restarted = status.restarted ? " 已自動重啟。" : "";
+      schedulerMeta.textContent = `${state} · ${running} · 間隔 ${status.interval_minutes} 分鐘 · 每批 ${status.batch_size} 檔 · 快取 ${status.refresh_minutes} 分鐘。${persisted}${last}${next}${health}${restarted}${error}`;
+    }
+
+    async function loadSchedulerStatus() {
+      try {
+        const response = await fetch("/api/scheduler/status");
+        renderSchedulerStatus(await response.json());
+      } catch (error) {
+        schedulerMeta.textContent = "背景掃描狀態讀取失敗。";
+      }
+    }
+
+    async function startScheduler() {
+      startSchedulerButton.disabled = true;
+      schedulerMeta.textContent = "啟動背景掃描中...";
+      try {
+        const params = new URLSearchParams({
+          interval_minutes: schedulerIntervalInput.value || "30",
+          batch_size: schedulerBatchInput.value || "25",
+          refresh_minutes: schedulerRefreshInput.value || "60",
+          min_priority: minPriorityInput.value || "25",
+          scope: "tw_full_market",
+        });
+        if (scanAssetInput.value) params.set("asset_type", scanAssetInput.value);
+        const response = await fetch(`/api/scheduler/start?${params.toString()}`);
+        renderSchedulerStatus(await response.json());
+      } catch (error) {
+        schedulerMeta.textContent = "背景掃描啟動失敗。";
+      } finally {
+        startSchedulerButton.disabled = false;
+      }
+    }
+
+    async function stopScheduler() {
+      stopSchedulerButton.disabled = true;
+      try {
+        const response = await fetch("/api/scheduler/stop");
+        renderSchedulerStatus(await response.json());
+      } catch (error) {
+        schedulerMeta.textContent = "背景掃描停止失敗。";
+      } finally {
+        stopSchedulerButton.disabled = false;
+      }
+    }
+
+    async function loadActiveEtfChanges() {
+      loadActiveEtfButton.disabled = true;
+      activeEtfMeta.textContent = "讀取主動式 ETF 異動中...";
+      try {
+        const params = new URLSearchParams({ limit: "120" });
+        if (activeEtfDateInput.value) params.set("trade_date", activeEtfDateInput.value);
+        if (activeEtfStockInput.value.trim()) params.set("stock", activeEtfStockInput.value.trim());
+        const response = await fetch(`/api/active-etf/changes?${params.toString()}`);
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "主動式 ETF 異動讀取失敗");
+        activeEtfSummary.innerHTML = payload.stock_summary.length
+          ? payload.stock_summary.slice(0, 12).map(renderActiveEtfSummary).join("")
+          : `<div class="empty">目前沒有個股彙總</div>`;
+        activeEtfChanges.innerHTML = payload.changes.length
+          ? payload.changes.map(renderActiveEtfChange).join("")
+          : `<div class="empty">目前沒有符合條件的異動</div>`;
+        activeEtfMeta.textContent = `已載入 ${payload.changes.length} 筆異動。主動式 ETF 異動是投資線索，不是買賣指令。`;
+      } catch (error) {
+        activeEtfMeta.textContent = error.message;
+        activeEtfChanges.innerHTML = `<div class="empty">${error.message}</div>`;
+      } finally {
+        loadActiveEtfButton.disabled = false;
+      }
+    }
+
+    async function loadActiveEtfSourceStatus() {
+      try {
+        const response = await fetch("/api/active-etf/source-status");
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "資料源狀態讀取失敗。");
+        renderActiveEtfSourceStatus(payload);
+      } catch (error) {
+        activeEtfSourceMeta.textContent = error.message;
+        activeEtfSourceStatus.innerHTML = `<div class="empty">${error.message}</div>`;
+      }
+    }
+
+    async function loadDataAudits() {
+      try {
+        const response = await fetch("/api/data/audits?limit=8");
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "匯入稽核讀取失敗。");
+        dataAuditList.innerHTML = payload.audits?.length
+          ? payload.audits.map(renderDataAudit).join("")
+          : `<div class="empty">目前沒有匯入稽核紀錄</div>`;
+        dataAuditMeta.textContent = `已載入 ${payload.audits?.length || 0} 筆最近匯入紀錄。`;
+      } catch (error) {
+        dataAuditMeta.textContent = error.message;
+        dataAuditList.innerHTML = `<div class="empty">${error.message}</div>`;
+      }
+    }
+
+    async function syncActiveEtfSources(forceManualCsv = false) {
+      syncActiveEtfButton.disabled = true;
+      forceActiveEtfCsvButton.disabled = true;
+      activeEtfSourceMeta.textContent = forceManualCsv ? "強制使用 CSV fallback 同步中..." : "同步主動式 ETF 資料源中...";
+      try {
+        const params = new URLSearchParams();
+        if (forceManualCsv) params.set("force_manual_csv", "1");
+        const response = await fetch(`/api/active-etf/sync?${params.toString()}`);
+        const payload = await response.json();
+        renderSyncAttempts(payload.attempts || []);
+        if (!response.ok) throw new Error(payload.error || "主動式 ETF 資料源同步失敗。");
+        if (payload.source_status) renderActiveEtfSourceStatus(payload.source_status);
+        activeEtfSourceMeta.textContent = `同步完成：選用 ${payload.selected_source || "-"}，狀態 ${payload.status || "-"}。`;
+        await Promise.all([loadActiveEtfChanges(), loadDataAudits()]);
+      } catch (error) {
+        activeEtfSourceMeta.textContent = error.message;
+      } finally {
+        syncActiveEtfButton.disabled = false;
+        forceActiveEtfCsvButton.disabled = false;
+      }
+    }
+
+    async function importActiveEtfChanges() {
+      importActiveEtfButton.disabled = true;
+      activeEtfMeta.textContent = "正在匯入 active_etf_changes.csv...";
+      try {
+        const response = await fetch("/api/active-etf/holdings/import?file=active_etf_holdings.csv");
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "匯入主動式 ETF 異動失敗");
+        activeEtfMeta.textContent = `匯入完成：新增 ${payload.inserted} 筆，更新 ${payload.updated} 筆，略過 ${payload.skipped} 筆，累計 ${payload.total_changes} 筆。`;
+        await loadActiveEtfChanges();
+        await Promise.all([loadActiveEtfSourceStatus(), loadDataAudits()]);
+      } catch (error) {
+        activeEtfMeta.textContent = error.message;
+      } finally {
+        importActiveEtfButton.disabled = false;
+      }
+    }
+
+    async function backtest() {
+      const symbols = symbolsInput.value.trim();
+      if (!symbols) return;
+      backtestButton.disabled = true;
+      backtestPanel.classList.add("active");
+      backtestMeta.textContent = "抓取歷史日線並回測中...";
+      backtestResults.innerHTML = "";
+      try {
+        const params = new URLSearchParams({
+          symbols,
+          days: backtestDaysInput.value || "180",
+          cost_bps: costBpsInput.value || "5",
+        });
+        const response = await fetch(`/api/backtest?${params.toString()}`);
+        const payload = await response.json();
+        if (!response.ok && !payload.results?.length) {
+          throw new Error(payload.error || payload.errors?.[0]?.message || "回測失敗");
+        }
+        backtestResults.innerHTML = payload.results.map(renderBacktestCard).join("");
+        const errors = payload.errors?.length
+          ? ` 部分失敗：${payload.errors.map(e => `${e.symbol} ${e.message}`).join("；")}`
+          : "";
+        backtestMeta.textContent = `run #${payload.run_id || "-"} · 耗時 ${payload.elapsed_seconds}s · ${payload.disclaimer}${errors}`;
+      } catch (error) {
+        backtestResults.innerHTML = `<div class="empty">${error.message}</div>`;
+        backtestMeta.textContent = "請確認網路連線、代號格式與回測天數。";
+      } finally {
+        backtestButton.disabled = false;
+      }
+    }
+
+    async function research() {
+      const symbols = symbolsInput.value.trim();
+      if (!symbols) return;
+      researchButton.disabled = true;
+      researchPanel.classList.add("active");
+      researchMeta.textContent = "Agent 團隊讀取資料、分析新聞與交叉驗證中...";
+      researchResults.innerHTML = "";
+      try {
+        const params = new URLSearchParams({ symbols });
+        if (thresholdInput.value) params.set("threshold", thresholdInput.value);
+        const response = await fetch(`/api/research?${params.toString()}`);
+        const payload = await response.json();
+        if (!response.ok && !payload.results?.length) {
+          throw new Error(payload.error || payload.errors?.[0]?.message || "投研報告產生失敗");
+        }
+        researchResults.innerHTML = payload.results.map(renderResearchSymbol).join("");
+        const errors = payload.errors?.length
+          ? ` 部分失敗：${payload.errors.map(e => `${e.symbol} ${e.message}`).join("；")}`
+          : "";
+        researchMeta.textContent = `耗時 ${payload.elapsed_seconds}s · ${payload.disclaimer}${errors}`;
+      } catch (error) {
+        researchResults.innerHTML = `<div class="empty">${error.message}</div>`;
+        researchMeta.textContent = "請確認網路連線與投資代號格式。";
+      } finally {
+        researchButton.disabled = false;
+      }
+    }
+
+    document.querySelectorAll("[data-symbols]").forEach(button => {
+      button.addEventListener("click", () => {
+        symbolsInput.value = button.dataset.symbols;
+        analyze();
+      });
+    });
+    document.querySelectorAll("[data-page]").forEach(button => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll("[data-page]").forEach(tab => tab.classList.remove("active"));
+        document.querySelectorAll(".page").forEach(page => page.classList.remove("active"));
+        button.classList.add("active");
+        document.querySelector(`#${button.dataset.page}`).classList.add("active");
+        if (button.dataset.page === "dailyPage") { loadDailyRecommendations(); loadWatchlistAlerts(); }
+      });
+    });
+    document.querySelector("#dailyDateSelect").addEventListener("change", event => {
+      if (!dailyRecordsCache) return;
+      const record = dailyRecordsCache.find(r => String(r.date) === event.target.value);
+      renderDailyDayTable(record);
+    });
+    document.querySelector("#dailySymbolSelect").addEventListener("change", event => {
+      if (!dailyRecordsCache) return;
+      renderDailySymbolTrend(dailyRecordsCache, event.target.value);
+    });
+    document.querySelector("#dailyMinDays").addEventListener("change", event => {
+      if (!dailyPersistenceCache) return;
+      renderDailyPersistence(dailyPersistenceCache, Number(event.target.value || 2));
+    });
+    document.querySelector("#dailyPersistence").addEventListener("click", event => {
+      const link = event.target.closest("[data-trend-symbol]");
+      if (!link || !dailyRecordsCache) return;
+      const select = document.querySelector("#dailySymbolSelect");
+      select.value = link.dataset.trendSymbol;
+      renderDailySymbolTrend(dailyRecordsCache, link.dataset.trendSymbol);
+      document.querySelector("#dailySymbolTrend").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+    document.querySelector("#dailyRefresh").addEventListener("click", () => loadDailyRecommendations(true));
+    document.querySelector("#watchlistRefresh").addEventListener("click", () => loadWatchlistAlerts(true));
+    document.querySelector("#dailyDayTable").addEventListener("click", event => {
+      const link = event.target.closest("[data-open-symbol]");
+      if (!link) return;
+      symbolsInput.value = link.dataset.openSymbol;
+      document.querySelector('[data-page="manualPage"]').click();
+      research();
+    });
+    scanResults.addEventListener("click", event => {
+      const button = event.target.closest("[data-open-symbol]");
+      if (!button) return;
+      symbolsInput.value = button.dataset.openSymbol;
+      document.querySelector('[data-page="manualPage"]').click();
+      research();
+    });
+    latestOpportunities.addEventListener("click", event => {
+      const button = event.target.closest("[data-open-symbol]");
+      if (!button) return;
+      symbolsInput.value = button.dataset.openSymbol;
+      document.querySelector('[data-page="manualPage"]').click();
+      research();
+    });
+    twShortlistResults.addEventListener("click", event => {
+      const button = event.target.closest("[data-open-symbol]");
+      if (!button) return;
+      symbolsInput.value = button.dataset.openSymbol;
+      document.querySelector('[data-page="manualPage"]').click();
+      research();
+    });
+    latestEtfSignals.addEventListener("click", event => {
+      const button = event.target.closest("[data-open-symbol]");
+      if (!button) return;
+      symbolsInput.value = button.dataset.openSymbol;
+      document.querySelector('[data-page="manualPage"]').click();
+      research();
+    });
+    activeEtfChanges.addEventListener("click", event => {
+      const button = event.target.closest("[data-open-symbol]");
+      if (!button) return;
+      symbolsInput.value = button.dataset.openSymbol;
+      document.querySelector('[data-page="manualPage"]').click();
+      research();
+    });
+    activeEtfSummary.addEventListener("click", event => {
+      const button = event.target.closest("[data-open-symbol]");
+      if (!button) return;
+      symbolsInput.value = button.dataset.openSymbol;
+      document.querySelector('[data-page="manualPage"]').click();
+      research();
+    });
+    scanButton.addEventListener("click", scanMarket);
+    expandUniverseButton.addEventListener("click", expandUniverse);
+    importUniverseButton.addEventListener("click", importUniverse);
+    maximizeUniverseButton.addEventListener("click", maximizeUniverse);
+    startSchedulerButton.addEventListener("click", startScheduler);
+    stopSchedulerButton.addEventListener("click", stopScheduler);
+    refreshLatestButton.addEventListener("click", loadLatestDashboard);
+
+    function fmtPct(v) {
+      if (v == null) return "-";
+      return (v * 100).toFixed(1) + "%";
+    }
+    function fmtSignedPct(v) {
+      if (v == null) return "-";
+      const s = (v * 100).toFixed(1);
+      return (v >= 0 ? "+" : "") + s + "%";
+    }
+    function pctBadge(pct) {
+      if (pct == null) return "";
+      const cls = pct >= 75 ? "high" : pct <= 25 ? "low" : "mid";
+      const label = pct >= 75 ? `前 ${100 - pct}%` : pct <= 25 ? `後 ${pct}%` : `中段`;
+      return `<span class="icmp-pct ${cls}">${label}</span>`;
+    }
+    async function loadIndustryCmp(symbol) {
+      const id = "icmp-" + symbol.replace(/\W/g, "-");
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.innerHTML = `<h4>同業比較<small style="margin-left:8px;color:var(--muted)">載入中…</small></h4>`;
+      try {
+        const d = await fetch(`/api/industry-comparison?symbol=${encodeURIComponent(symbol)}`).then(r => r.json());
+        if (d.error) { el.innerHTML = `<h4>同業比較<small style="color:var(--muted);margin-left:8px">${d.error}</small></h4>`; return; }
+        const metrics = [
+          { key: "gross_margin", label: "毛利率", fmt: fmtPct },
+          { key: "operating_margin", label: "營業利益率", fmt: fmtPct },
+          { key: "eps_qoq", label: "EPS QoQ", fmt: fmtSignedPct },
+          { key: "revenue_yoy", label: "營收 YoY", fmt: fmtSignedPct },
+        ];
+        const metricCells = metrics.map(m => {
+          const val = d.target[m.key];
+          const pct = d.percentiles[m.key];
+          return `<div class="icmp-metric"><span>${m.label}</span><b>${m.fmt(val)}</b>${pctBadge(pct)}</div>`;
+        }).join("");
+        const insightRows = (d.outlier_flags || []).map(f =>
+          `<div class="icmp-insight ${f.direction}">${f.insight}</div>`
+        ).join("");
+        const peerRows = (d.top_peers || []).map(p => `
+          <tr${p.is_target ? ' class="is-target"' : ""}>
+            <td>${p.stock_id} ${p.name || ""}</td>
+            <td>${fmtPct(p.gross_margin)}</td>
+            <td>${fmtPct(p.operating_margin)}</td>
+            <td>${fmtSignedPct(p.eps_qoq)}</td>
+            <td>${fmtSignedPct(p.revenue_yoy)}</td>
+          </tr>`).join("");
+        el.innerHTML = `
+          <h4>${d.industry_group} 同業比較 <small style="color:var(--muted)">${d.data_count}/${d.peer_count} 檔有資料</small></h4>
+          <div class="icmp-metrics">${metricCells}</div>
+          ${insightRows ? `<div class="icmp-insights">${insightRows}</div>` : ""}
+          <div class="icmp-table-wrap">
+            <table class="icmp-table">
+              <thead><tr><th>標的</th><th>毛利率</th><th>營業利益率</th><th>EPS QoQ</th><th>營收 YoY</th></tr></thead>
+              <tbody>${peerRows}</tbody>
+            </table>
+          </div>`;
+      } catch (err) {
+        el.innerHTML = `<h4>同業比較<small style="color:var(--muted);margin-left:8px">載入失敗：${err.message}</small></h4>`;
+      }
+    }
+
+    async function runAegisRefresh() {
+      aegisRefreshButton.disabled = true;
+      setText("#aegisRefresh", "刷新中...");
+      setText("#latestMeta", "正在刷新 Aegis 快照，請稍候...");
+      try {
+        const r = await fetch("/api/aegis/refresh?force=1").then(res => res.json());
+        if (r.ran && r.returncode === 0) {
+          const st = r.status || {};
+          const latest = st.price_daily_latest_date || "";
+          setText("#latestMeta", `Aegis 快照已更新（耗時 ${r.elapsed_seconds}s）。price_daily 最新：${latest}。正在重新載入...`);
+          loadLatestDashboard();
+        } else if (r.ran && r.returncode !== 0) {
+          setText("#latestMeta", `Aegis 快照更新失敗：${r.stderr || r.error || "unknown error"}`);
+        } else {
+          setText("#latestMeta", `Aegis 快照未執行：${r.error || "unknown"}`);
+        }
+      } catch (e) {
+        setText("#latestMeta", `Aegis 刷新失敗：${e.message}`);
+      }
+      setText("#aegisRefresh", "刷新 Aegis 快照");
+      aegisRefreshButton.disabled = false;
+    }
+
+    async function runDailyRecommendation() {
+      dailyRecommendButton.disabled = true;
+      setText("#dailyRecommend", "執行中...");
+      setText("#latestMeta", "正在執行每日推薦，請稍候（最多 2 分鐘）...");
+      try {
+        const r = await fetch("/api/recommendations/daily-log?force=1&limit=50").then(res => res.json());
+        if (r.ran) {
+          setText("#latestMeta", `每日推薦完成：${r.date}，共 ${r.recommendation_count} 筆。${r.note || ""}`);
+          loadLatestDashboard();
+        } else {
+          setText("#latestMeta", `每日推薦未執行：${r.reason || "unknown"}`);
+        }
+      } catch (e) {
+        setText("#latestMeta", `每日推薦失敗：${e.message}`);
+      }
+      setText("#dailyRecommend", "執行每日推薦");
+      dailyRecommendButton.disabled = false;
+    }
+
+    aegisRefreshButton.addEventListener("click", runAegisRefresh);
+    dailyRecommendButton.addEventListener("click", runDailyRecommendation);
+    loadActiveEtfButton.addEventListener("click", loadActiveEtfChanges);
+    importActiveEtfButton.addEventListener("click", importActiveEtfChanges);
+    syncActiveEtfButton.addEventListener("click", () => syncActiveEtfSources(false));
+    forceActiveEtfCsvButton.addEventListener("click", () => syncActiveEtfSources(true));
+    analyzeButton.addEventListener("click", analyze);
+    researchButton.addEventListener("click", research);
+    backtestButton.addEventListener("click", backtest);
+    thresholdInput.addEventListener("change", analyze);
+    autoRefreshInput.addEventListener("change", () => {
+      if (refreshTimer) {
+        clearInterval(refreshTimer);
+        refreshTimer = null;
+      }
+      if (autoRefreshInput.checked) {
+        refreshTimer = setInterval(analyze, 5 * 60 * 1000);
+      }
+    });
+    symbolsInput.addEventListener("keydown", event => {
+      if (event.key === "Enter") analyze();
+    });
+    loadUniverseSummary();
+    loadSchedulerStatus();
+    loadActiveEtfChanges();
+    loadActiveEtfSourceStatus();
+    loadDataAudits();
+    loadLatestDashboard();
+    setInterval(loadSchedulerStatus, 30000);
+    setInterval(loadLatestDashboard, 30000);
+  </script>
+</body>
+</html>
