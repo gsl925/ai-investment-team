@@ -41,8 +41,11 @@ def llm_enabled() -> bool:
     if not cfg.get("enabled"):
         return False
     provider = cfg.get("provider", "anthropic")
-    if provider == "ollama":
-        return bool(cfg.get("ollama", {}).get("model"))
+    if provider in ("ollama", "ollama_local"):
+        return bool(cfg.get("ollama_local", cfg.get("ollama", {})).get("model"))
+    if provider == "ollama_cloud":
+        oc = cfg.get("ollama_cloud", {})
+        return bool(oc.get("model") and oc.get("base_url"))
     return bool(cfg.get(provider, {}).get("api_key"))
 
 
@@ -87,11 +90,12 @@ def _call_llm(prompt: str, system: str) -> str:
         )
         return response.choices[0].message.content
 
-    if provider == "ollama":
+    if provider in ("ollama", "ollama_local"):
         import urllib.request
-        ollama_cfg = cfg.get("ollama", {})
-        base_url = ollama_cfg.get("base_url", "http://localhost:11434").rstrip("/")
-        model = ollama_cfg.get("model", "llama3.2")
+        # "ollama_local" key takes priority; fall back to legacy "ollama" key
+        ol_cfg = cfg.get("ollama_local", cfg.get("ollama", {}))
+        base_url = ol_cfg.get("base_url", "http://localhost:11434").rstrip("/")
+        model = ol_cfg.get("model", "llama3.2")
         payload = json.dumps({
             "model": model,
             "messages": [
@@ -109,6 +113,34 @@ def _call_llm(prompt: str, system: str) -> str:
         with urllib.request.urlopen(req, timeout=120) as resp:
             data = json.loads(resp.read())
         return data["message"]["content"]
+
+    if provider == "ollama_cloud":
+        import urllib.request
+        oc = cfg.get("ollama_cloud", {})
+        base_url = oc.get("base_url", "").rstrip("/")
+        model = oc.get("model", "")
+        api_key = oc.get("api_key", "")
+        payload = json.dumps({
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt},
+            ],
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "stream": False,
+        }).encode()
+        headers: dict[str, str] = {"Content-Type": "application/json"}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        req = urllib.request.Request(
+            f"{base_url}/v1/chat/completions",
+            data=payload,
+            headers=headers,
+        )
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            data = json.loads(resp.read())
+        return data["choices"][0]["message"]["content"]
 
     raise ValueError(f"不支援的 LLM provider：{provider}")
 
