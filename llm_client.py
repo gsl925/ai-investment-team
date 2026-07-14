@@ -211,3 +211,95 @@ def generate_research_insights(
             return {}
 
     return {k: str(parsed.get(k, "")) for k in _AGENT_KEYS if parsed.get(k)}
+
+
+def generate_industry_insight(
+    l1_data: dict[str, Any],
+    news: list[dict[str, str]],
+) -> dict[str, Any]:
+    """
+    Level 2 industry comparison: LLM narrative on WHY the stock stands out vs peers
+    and whether recent news corroborates the quantitative signals.
+    Returns {"llm_insight": str, "news_used": int} or {"llm_error": str}.
+    Always returns {} if LLM is disabled.
+    """
+    if not llm_enabled():
+        return {}
+
+    symbol = l1_data.get("symbol", "")
+    name = l1_data.get("name", "")
+    industry = l1_data.get("industry_group", "")
+    data_count = l1_data.get("data_count", 0)
+    target = l1_data.get("target", {})
+    percentiles = l1_data.get("percentiles", {})
+    medians = l1_data.get("medians", {})
+    outlier_flags = l1_data.get("outlier_flags", [])
+
+    def fmt_pct(v: Any) -> str:
+        if v is None:
+            return "N/A"
+        return f"{float(v):.1%}"
+
+    def fmt_signed_pct(v: Any) -> str:
+        if v is None:
+            return "N/A"
+        return f"{float(v):+.1%}"
+
+    def pct_desc(pct: Any) -> str:
+        if pct is None:
+            return "資料不足"
+        p = int(pct)
+        if p >= 75:
+            return f"前 {100 - p}%（同業前段）"
+        if p <= 25:
+            return f"後 {p}%（同業末段）"
+        return f"中段（第 {p} 百分位）"
+
+    metric_lines = [
+        f"  毛利率：{fmt_pct(target.get('gross_margin'))}  {pct_desc(percentiles.get('gross_margin'))}  同業中位 {fmt_pct(medians.get('gross_margin'))}",
+        f"  營業利益率：{fmt_pct(target.get('operating_margin'))}  {pct_desc(percentiles.get('operating_margin'))}  同業中位 {fmt_pct(medians.get('operating_margin'))}",
+        f"  EPS QoQ：{fmt_signed_pct(target.get('eps_qoq'))}  {pct_desc(percentiles.get('eps_qoq'))}  同業中位 {fmt_signed_pct(medians.get('eps_qoq'))}",
+        f"  營收 YoY：{fmt_signed_pct(target.get('revenue_yoy'))}  {pct_desc(percentiles.get('revenue_yoy'))}  同業中位 {fmt_signed_pct(medians.get('revenue_yoy'))}",
+        f"  EPS TTM：{target.get('eps_ttm') if target.get('eps_ttm') is not None else 'N/A'}  {pct_desc(percentiles.get('eps_ttm'))}  同業中位 {medians.get('eps_ttm') if medians.get('eps_ttm') is not None else 'N/A'}",
+    ]
+
+    outlier_lines = [f"  - {f['insight']}" for f in outlier_flags] if outlier_flags else ["  - 無顯著偏離同業中位的指標"]
+
+    news_lines: list[str] = []
+    for n in news[:8]:
+        sentiment = n.get("sentiment", "neutral")
+        source = n.get("source", "")
+        title = n.get("title", "")
+        flag = "▲" if sentiment == "positive" else ("▼" if sentiment == "negative" else "─")
+        news_lines.append(f"  {flag} [{source}] {title}")
+
+    prompt = f"""以下是台股 {symbol} {name} 在 {industry} 產業中的同業財務比較（共 {data_count} 家同業有資料）：
+
+【財務指標同業位階】
+{chr(10).join(metric_lines)}
+
+【顯著特徵（偏離同業中位 ≥ P80 或 ≤ P20）】
+{chr(10).join(outlier_lines)}
+
+【近期新聞標題】
+{chr(10).join(news_lines) if news_lines else "  （無可取得新聞）"}
+
+請以 4-5 句繁體中文回答：
+1. 這家公司在同業中財務位階的可能結構性原因（產品定位、成本結構、客戶集中度等推理，非重複數字）
+2. 上述新聞是否與財務特徵吻合？有無佐證或矛盾之處？
+3. {industry} 產業目前可能面臨的主要順風或逆風
+4. 基於同業比較，本股最值得關注的一個機會或風險點
+
+回覆純文字，不要 JSON 或標題，直接輸出分析段落。"""
+
+    system = (
+        "你是專業的台股產業分析師，擅長從同業比較中辨識競爭優勢與結構性風險。"
+        "根據財務數據與新聞，提供有邏輯根據的觀點，不做無依據的預測。"
+        "用繁體中文回覆，言簡意賅。"
+    )
+
+    try:
+        raw = _call_llm(prompt, system)
+        return {"llm_insight": raw.strip(), "news_used": len(news_lines)}
+    except Exception as exc:
+        return {"llm_error": str(exc)}

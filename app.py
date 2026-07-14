@@ -3040,6 +3040,25 @@ class InvestmentHandler(BaseHTTPRequestHandler):
             json_response(self, result)
             return
 
+        if parsed.path == "/api/industry-comparison/insight":
+            params = parse_qs(parsed.query)
+            symbol = params.get("symbol", [""])[0].strip()
+            if not symbol:
+                json_response(self, {"error": "symbol required"}, 400)
+                return
+            l1 = get_industry_comparison(symbol)
+            if l1 is None:
+                json_response(self, {"error": "no industry comparison data", "symbol": symbol}, 404)
+                return
+            from llm_client import generate_industry_insight, llm_enabled
+            if not llm_enabled():
+                json_response(self, {"error": "LLM disabled — 請先在 settings.json 設定 llm.enabled=true 並填入 api_key"})
+                return
+            news = get_taiwan_stock_news(symbol, l1.get("name") or "", limit=8)
+            insight = generate_industry_insight(l1, news)
+            json_response(self, {**insight, "symbol": symbol, "industry_group": l1.get("industry_group")})
+            return
+
         if parsed.path == "/api/dashboard/latest":
             json_response(self, get_latest_dashboard())
             return

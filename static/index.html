@@ -683,6 +683,7 @@
     .icmp-insight.high { border-color: #ef4444; background: #fef2f2; }
     .icmp-insight.low  { border-color: #3b82f6; background: #eff6ff; }
     .icmp-table-wrap { overflow-x: auto; }
+    .icmp-llm-result { margin-top: 6px; }
     .icmp-table {
       width: 100%;
       border-collapse: collapse;
@@ -3306,6 +3307,7 @@
             <td>${fmtSignedPct(p.eps_qoq)}</td>
             <td>${fmtSignedPct(p.revenue_yoy)}</td>
           </tr>`).join("");
+        const insightAnchorId = `icmp-llm-${symbol.replace(/\W/g, "-")}`;
         el.innerHTML = `
           <h4>${d.industry_group} 同業比較 <small style="color:var(--muted)">${d.data_count}/${d.peer_count} 檔有資料</small></h4>
           <div class="icmp-metrics">${metricCells}</div>
@@ -3315,7 +3317,34 @@
               <thead><tr><th>標的</th><th>毛利率</th><th>營業利益率</th><th>EPS QoQ</th><th>營收 YoY</th></tr></thead>
               <tbody>${peerRows}</tbody>
             </table>
-          </div>`;
+          </div>
+          <div style="margin-top:10px">
+            <button class="secondary icmp-llm-btn" data-symbol="${symbol}" data-anchor="${insightAnchorId}">產業深度分析 ▸ LLM</button>
+          </div>
+          <div id="${insightAnchorId}" class="icmp-llm-result"></div>`;
+        el.querySelector(".icmp-llm-btn").addEventListener("click", async function() {
+          const btn = this;
+          const anchor = document.getElementById(btn.dataset.anchor);
+          btn.disabled = true;
+          btn.textContent = "分析中…";
+          anchor.innerHTML = `<div class="llm-insight" style="color:var(--muted)">正在呼叫 LLM，請稍候（約 5-15 秒）…</div>`;
+          try {
+            const r = await fetch(`/api/industry-comparison/insight?symbol=${encodeURIComponent(btn.dataset.symbol)}`).then(res => res.json());
+            if (r.error) {
+              anchor.innerHTML = `<div class="llm-insight llm-error"><span class="llm-badge">LLM</span>${r.error}</div>`;
+            } else if (r.llm_insight) {
+              const newsNote = r.news_used ? `<small style="color:var(--muted);margin-top:4px;display:block">參考 ${r.news_used} 則新聞</small>` : "";
+              anchor.innerHTML = `<div class="llm-insight"><span class="llm-badge">LLM 產業分析</span>${r.llm_insight}${newsNote}</div>`;
+              btn.style.display = "none";
+            } else {
+              anchor.innerHTML = `<div class="llm-insight llm-error"><span class="llm-badge">LLM</span>回傳格式異常</div>`;
+            }
+          } catch (err) {
+            anchor.innerHTML = `<div class="llm-insight llm-error"><span class="llm-badge">LLM</span>呼叫失敗：${err.message}</div>`;
+          } finally {
+            if (btn.style.display !== "none") { btn.disabled = false; btn.textContent = "產業深度分析 ▸ LLM"; }
+          }
+        });
       } catch (err) {
         el.innerHTML = `<h4>同業比較<small style="color:var(--muted);margin-left:8px">載入失敗：${err.message}</small></h4>`;
       }
