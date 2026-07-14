@@ -41,6 +41,8 @@ def llm_enabled() -> bool:
     if not cfg.get("enabled"):
         return False
     provider = cfg.get("provider", "anthropic")
+    if provider == "ollama":
+        return bool(cfg.get("ollama", {}).get("model"))
     return bool(cfg.get(provider, {}).get("api_key"))
 
 
@@ -84,6 +86,29 @@ def _call_llm(prompt: str, system: str) -> str:
             ],
         )
         return response.choices[0].message.content
+
+    if provider == "ollama":
+        import urllib.request
+        ollama_cfg = cfg.get("ollama", {})
+        base_url = ollama_cfg.get("base_url", "http://localhost:11434").rstrip("/")
+        model = ollama_cfg.get("model", "llama3.2")
+        payload = json.dumps({
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt},
+            ],
+            "stream": False,
+            "options": {"temperature": temperature},
+        }).encode()
+        req = urllib.request.Request(
+            f"{base_url}/api/chat",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            data = json.loads(resp.read())
+        return data["message"]["content"]
 
     raise ValueError(f"不支援的 LLM provider：{provider}")
 
