@@ -2584,6 +2584,280 @@ def tw_full_market_strict_candidate_row(item: dict[str, Any]) -> dict[str, Any] 
     }
 
 
+def get_fundamental_momentum_scan(
+    min_revenue_yi: float = 1.0,
+    limit: int = 100,
+    sort_by: str = "rev_accel",
+) -> dict[str, Any]:
+    """
+    Scan TW universe for fundamental momentum signals:
+      - Revenue YoY acceleration (last 3 filed months)
+      - Revenue MoM trend
+      - EPS QoQ trend (last 4 quarters)
+      - Gross margin trend (quarterly, YoY expansion)
+    All data from Aegis snapshot — no Yahoo calls.
+    """
+    min_rev = min_revenue_yi * 1e8
+    conn = aegis_connect()
+    if conn is None:
+        return {"error": "Aegis snapshot unavailable", "rows": []}
+
+    try:
+        # ── 1. stock master ──────────────────────────────────────────────
+        masters = {
+            r["stock_id"]: {"name": r["name"], "market": r["market"], "industry": r["industry_group"]}
+            for r in conn.execute("SELECT stock_id, name, market, industry_group FROM stock_master").fetchall()
+        }
+
+        # ── 2. revenue: last 14 filed months per stock ───────────────────
+        rev_rows = conn.execute(
+            "SELECT stock_id, yyyymm, revenue FROM revenue_monthly_raw WHERE revenue > 0 ORDER BY stock_id, yyyymm DESC"
+        ).fetchall()
+        rev_by_stock: dict[str, list[tuple[str, float]]] = {}
+        for r in rev_rows:
+            sid = r["stock_id"]
+            if sid not in rev_by_stock:
+                rev_by_stock[sid] = []
+            if len(rev_by_stock[sid]) < 14:
+                rev_by_stock[sid].append((r["yyyymm"], float(r["revenue"])))
+
+        # ── 3. EPS: last 8 quarters per stock ────────────────────────────
+        eps_rows = conn.execute(
+            "SELECT stock_id, year, quarter, eps FROM eps_quarterly_raw ORDER BY stock_id, year DESC, quarter DESC"
+        ).fetchall()
+        eps_by_stock: dict[str, list[tuple[int, int, float | None]]] = {}
+        for r in eps_rows:
+            sid = r["stock_id"]
+            if sid not in eps_by_stock:
+                eps_by_stock[sid] = []
+            if len(eps_by_stock[sid]) < 8:
+                val = safe_float(r["eps"])
+                eps_by_stock[sid].append((int(r["year"]), int(r["quarter"]), val))
+
+        # ── 4. Gross margin from financial statements cache ───────────────
+        cache_rows = conn.execute(
+            "SELECT params_json, payload_json FROM api_cache WHERE dataset='TaiwanStockFinancialStatements'"
+        ).fetchall()
+        gm_by_stock: dict[str, list[tuple[str, float]]] = {}
+        for crow in cache_rows:
+            m = re.search(r'"data_id":\s*"(\d+)"', crow["params_json"] or "")
+            if not m:
+                continue
+            sid = m.group(1)
+            try:
+                data = json.loads(crow["payload_json"] or "{}").get("data", [])
+            except Exception:
+                continue
+            by_date: dict[str, dict[str, float]] = {}
+            for item in data:
+                t = item.get("type", "")
+                if t not in ("GrossProfit", "Revenue"):
+                    continue
+                d = item.get("date", "")
+                v = safe_float(item.get("value"))
+                if d and v is not None:
+                    by_date.setdefault(d, {})[t] = v
+            gm_series = []
+            for dt in sorted(by_date.keys()):
+                gp = by_date[dt].get("GrossProfit")
+                rev = by_date[dt].get("Revenue")
+                if gp is not None and rev and rev > 0:
+                    gm_series.append((dt, round(gp / rev, 4)))
+            if gm_series:
+                gm_by_stock[sid] = gm_series[-8:]
+
+    finally:
+        conn.close()
+
+    # ── Helper: yyyymm arithmetic ─────────────────────────────────────────
+    def yyyymm_minus_12(ym: str) -> str:
+        y, mo = int(ym[:4]), int(ym[4:])
+        y -= 1
+        return f"{y}{mo:02d}"
+
+    def yyyymm_prev(ym: str) -> str:
+        y, mo = int(ym[:4]), int(ym[4:])
+        mo -= 1
+        if mo == 0:
+            mo = 12
+            y -= 1
+        return f"{y}{mo:02d}"
+
+    # ── Universe from live DB (TW stocks only) ────────────────────────────
+    try:
+        lconn = db_connect()
+        tw_symbols = {
+            r[0] for r in lconn.execute("SELECT symbol FROM universe WHERE symbol LIKE '%.TW'").fetchall()
+        }
+        lconn.close()
+    except Exception:
+        tw_symbols = set()
+
+    def to_sid(sym: str) -> str | None:
+        m = re.match(r"^(\d+)", sym)
+        return m.group(1) if m else None
+
+    universe_sids = {to_sid(s) for s in tw_symbols if to_sid(s)}
+
+    # ── Per-stock computation ─────────────────────────────────────────────
+    rows_out = []
+    for sid in universe_sids:
+        rev_series = rev_by_stock.get(sid, [])
+        if not rev_series:
+            continue
+        latest_rev = rev_series[0][1] if rev_series else 0
+        if latest_rev < min_rev:
+            continue
+
+        rev_map = {ym: v for ym, v in rev_series}
+
+        # Revenue YoY for last 3 available months
+        yoy_vals: list[float | None] = []
+        yoy_labels: list[str] = []
+        mom_vals: list[float | None] = []
+        for i in range(min(3, len(rev_series))):
+            ym, rv = rev_series[i]
+            yoy_ym = yyyymm_minus_12(ym)
+            rv_yoy = rev_map.get(yoy_ym)
+            yoy = (rv - rv_yoy) / abs(rv_yoy) if rv_yoy and rv_yoy != 0 else None
+            yoy_vals.append(yoy)
+            yoy_labels.append(ym)
+            prev_ym = yyyymm_prev(ym)
+            rv_prev = rev_map.get(prev_ym)
+            mom = (rv - rv_prev) / abs(rv_prev) if rv_prev and rv_prev != 0 else None
+            mom_vals.append(mom)
+
+        latest_yoy = yoy_vals[0] if yoy_vals else None
+        # Acceleration = latest YoY minus oldest available YoY (positive = accelerating)
+        valid_yoys = [(v, i) for i, v in enumerate(yoy_vals) if v is not None]
+        rev_accel: float | None = None
+        if len(valid_yoys) >= 2:
+            rev_accel = valid_yoys[0][0] - valid_yoys[-1][0]
+        latest_mom = mom_vals[0] if mom_vals else None
+
+        # EPS trend
+        eps_series = eps_by_stock.get(sid, [])
+        eps_qoq_latest: float | None = None
+        eps_vals: list[float | None] = []
+        if len(eps_series) >= 2:
+            e0 = eps_series[0][2]
+            e1 = eps_series[1][2]
+            if e0 is not None and e1 is not None and e1 != 0:
+                eps_qoq_latest = (e0 - e1) / abs(e1)
+        for _, _, v in eps_series[:5]:
+            eps_vals.append(v)
+        # EPS trend direction: positive count vs negative count of QoQ
+        eps_trend_dir = None
+        if len(eps_series) >= 3:
+            diffs = []
+            for i in range(min(4, len(eps_series) - 1)):
+                a = eps_series[i][2]
+                b = eps_series[i + 1][2]
+                if a is not None and b is not None:
+                    diffs.append(a - b)
+            pos = sum(1 for d in diffs if d > 0)
+            neg = sum(1 for d in diffs if d < 0)
+            if pos > neg:
+                eps_trend_dir = "up"
+            elif neg > pos:
+                eps_trend_dir = "down"
+            else:
+                eps_trend_dir = "flat"
+
+        # Gross margin trend
+        gm_series = gm_by_stock.get(sid, [])
+        gm_latest: float | None = None
+        gm_yoy_chg: float | None = None
+        gm_vals: list[float | None] = []
+        if gm_series:
+            gm_latest = gm_series[-1][1]
+            gm_vals = [v for _, v in gm_series[-5:]]
+            if len(gm_series) >= 5:
+                gm_yoy_chg = gm_series[-1][1] - gm_series[-5][1]
+            elif len(gm_series) >= 2:
+                gm_yoy_chg = gm_series[-1][1] - gm_series[0][1]
+
+        # ── Composite momentum tier ───────────────────────────────────────
+        tier_score = 0
+        if rev_accel is not None and rev_accel > 0.2:
+            tier_score += 3
+        elif rev_accel is not None and rev_accel > 0:
+            tier_score += 1
+        elif rev_accel is not None and rev_accel < -0.2:
+            tier_score -= 2
+        if latest_yoy is not None and latest_yoy > 0.3:
+            tier_score += 2
+        elif latest_yoy is not None and latest_yoy > 0.1:
+            tier_score += 1
+        elif latest_yoy is not None and latest_yoy < -0.1:
+            tier_score -= 1
+        if latest_mom is not None and latest_mom > 0.05:
+            tier_score += 1
+        elif latest_mom is not None and latest_mom < -0.05:
+            tier_score -= 1
+        if eps_trend_dir == "up":
+            tier_score += 2
+        elif eps_trend_dir == "down":
+            tier_score -= 1
+        if gm_yoy_chg is not None and gm_yoy_chg > 0.02:
+            tier_score += 2
+        elif gm_yoy_chg is not None and gm_yoy_chg < -0.02:
+            tier_score -= 1
+
+        if tier_score >= 6:
+            tier = "強加速"
+        elif tier_score >= 3:
+            tier = "加速"
+        elif tier_score >= 1:
+            tier = "偏正"
+        elif tier_score >= -1:
+            tier = "持平"
+        else:
+            tier = "衰退"
+
+        info = masters.get(sid, {})
+        rows_out.append({
+            "symbol": sid,
+            "name": info.get("name") or sid,
+            "market": info.get("market") or "",
+            "industry": info.get("industry") or "",
+            "tier": tier,
+            "tier_score": tier_score,
+            "latest_rev_yi": round(latest_rev / 1e8, 1),
+            "latest_yyyymm": yoy_labels[0] if yoy_labels else None,
+            "rev_yoy_m0": round(latest_yoy * 100, 1) if latest_yoy is not None else None,
+            "rev_yoy_m1": round(yoy_vals[1] * 100, 1) if len(yoy_vals) > 1 and yoy_vals[1] is not None else None,
+            "rev_yoy_m2": round(yoy_vals[2] * 100, 1) if len(yoy_vals) > 2 and yoy_vals[2] is not None else None,
+            "rev_accel": round(rev_accel * 100, 1) if rev_accel is not None else None,
+            "rev_mom": round(latest_mom * 100, 1) if latest_mom is not None else None,
+            "eps_vals": [round(v, 2) if v is not None else None for v in eps_vals[:5]],
+            "eps_qoq": round(eps_qoq_latest * 100, 1) if eps_qoq_latest is not None else None,
+            "eps_trend_dir": eps_trend_dir,
+            "gm_latest": round(gm_latest * 100, 1) if gm_latest is not None else None,
+            "gm_yoy_chg": round(gm_yoy_chg * 100, 2) if gm_yoy_chg is not None else None,
+            "gm_vals": [round(v * 100, 1) if v is not None else None for v in gm_vals],
+        })
+
+    # ── Sort ──────────────────────────────────────────────────────────────
+    SORT_KEYS = {
+        "rev_accel": lambda r: (r["tier_score"], r["rev_accel"] or -99, r["rev_yoy_m0"] or -99),
+        "rev_yoy":   lambda r: (r["tier_score"], r["rev_yoy_m0"] or -99),
+        "gm_chg":    lambda r: (r["gm_yoy_chg"] or -99, r["tier_score"]),
+        "eps_trend": lambda r: (1 if r["eps_trend_dir"] == "up" else (-1 if r["eps_trend_dir"] == "down" else 0), r["tier_score"]),
+    }
+    key_fn = SORT_KEYS.get(sort_by, SORT_KEYS["rev_accel"])
+    rows_out.sort(key=key_fn, reverse=True)
+
+    generated_at = datetime.now(tz=TAIPEI_TZ).isoformat()
+    return {
+        "generated_at": generated_at,
+        "total": len(rows_out),
+        "min_revenue_yi": min_revenue_yi,
+        "sort_by": sort_by,
+        "rows": rows_out[:limit],
+    }
+
+
 def get_tw_full_market_research_shortlist(limit: int = 25) -> dict[str, Any]:
     limit = max(1, min(limit, 100))
     candidates = []
@@ -2832,6 +3106,18 @@ class InvestmentHandler(BaseHTTPRequestHandler):
             json_response(self, compute_recommendation_persistence(
                 days=int(days_value) if days_value else 30,
                 min_days=int(min_days_value) if min_days_value else 2,
+            ))
+            return
+
+        if parsed.path == "/api/fundamental-momentum":
+            params = parse_qs(parsed.query)
+            min_rev = safe_float(params.get("min_rev", ["1"])[0]) or 1.0
+            limit_val = int(safe_float(params.get("limit", ["150"])[0]) or 150)
+            sort_by = params.get("sort", ["rev_accel"])[0].strip() or "rev_accel"
+            json_response(self, get_fundamental_momentum_scan(
+                min_revenue_yi=min_rev,
+                limit=min(limit_val, 300),
+                sort_by=sort_by,
             ))
             return
 

@@ -875,6 +875,8 @@
         grid-column: 2;
       }
     }
+    #fundMomentumPage .daily-table td { vertical-align: middle; }
+    #fundMomentumPage .daily-table tr:hover { background: var(--accent-soft); }
   </style>
 </head>
 <body>
@@ -892,6 +894,7 @@
       <button class="secondary" data-page="activeEtfPage">主動式 ETF 異動</button>
       <button class="secondary" data-page="manualPage">手動投研</button>
       <button class="secondary" data-page="dailyPage">每日推薦</button>
+      <button class="secondary" data-page="fundMomentumPage">基本面動能</button>
     </nav>
 
     <section id="latestPage" class="page active">
@@ -1239,6 +1242,42 @@
         </div>
       </section>
     </section>
+
+    <!-- ───── 基本面動能 tab ───── -->
+    <section id="fundMomentumPage" class="page">
+      <section class="scan-panel">
+        <div class="backtest-head">
+          <h2>基本面動能掃描</h2>
+          <div id="fmMeta" class="monitor-meta">尚未載入</div>
+        </div>
+        <div class="scan-controls">
+          <label class="control">最低月營收（億）
+            <input id="fmMinRev" type="number" value="1" min="0" step="1" style="width:80px">
+          </label>
+          <label class="control">排序依據
+            <select id="fmSort">
+              <option value="rev_accel">營收 YoY 加速度</option>
+              <option value="rev_yoy">最新月 YoY %</option>
+              <option value="gm_chg">毛利率 YoY 改善</option>
+              <option value="eps_trend">EPS 趨勢</option>
+            </select>
+          </label>
+          <label class="control">顯示
+            <select id="fmTierFilter">
+              <option value="">全部</option>
+              <option value="強加速">強加速</option>
+              <option value="加速">加速</option>
+              <option value="偏正">偏正</option>
+              <option value="持平">持平</option>
+              <option value="衰退">衰退</option>
+            </select>
+          </label>
+          <button id="fmRun">掃描</button>
+        </div>
+        <div id="fmResults"><div class="empty">點「掃描」開始</div></div>
+      </section>
+    </section>
+
   </main>
 
   <script>
@@ -2918,7 +2957,13 @@
         ? `第 ${Number(status.last_result.offset || 0) + 1}-${Number(status.last_result.offset || 0) + Number(status.last_result.scanned_count || 0)} 檔 / ${status.last_result.available_universe_count}，下次從第 ${Number(status.last_result.next_offset || 0) + 1} 檔開始`
         : `掃 ${status.last_result?.scanned_count || 0}`;
       const last = status.last_result
-        ? ` 上次 scan #${status.last_result.scan_run_id}，${lastRange}，核心 ${status.last_result.core_count ?? 0}，探索 ${status.last_result.discovery_count ?? 0}，快取 ${status.last_result.cache_hits}，刷新 ${status.last_result.refreshed_count}，機會 ${status.last_result.opportunity_count}。`
+        ? (() => {
+            const lr = status.last_result;
+            const fmPart = lr.fm_override_count
+              ? `，基本面動能插隊 ${lr.fm_override_count} 檔（${(lr.fm_override_symbols||[]).join(" ")}）`
+              : "";
+            return ` 上次 scan #${lr.scan_run_id}，${lastRange}，核心 ${lr.core_count ?? 0}${fmPart}，探索 ${lr.discovery_count ?? 0}，快取 ${lr.cache_hits}，刷新 ${lr.refreshed_count}，機會 ${lr.opportunity_count}。`;
+          })()
         : "";
       const next = status.next_run_at ? ` 下次：${new Date(status.next_run_at).toLocaleString("zh-TW")}。` : "";
       const error = status.last_error ? ` 錯誤：${status.last_error}` : "";
@@ -3348,6 +3393,151 @@
     loadLatestDashboard();
     setInterval(loadSchedulerStatus, 30000);
     setInterval(loadLatestDashboard, 30000);
+
+    // ───── 基本面動能掃描 ─────────────────────────────────────────────
+    const fmRun = document.querySelector("#fmRun");
+    const fmResults = document.querySelector("#fmResults");
+    const fmMeta = document.querySelector("#fmMeta");
+
+    const TIER_COLOR = {
+      "強加速": "#0a6640", "加速": "#1d7348", "偏正": "#5c7a3e",
+      "持平": "#888", "衰退": "#b03a2e",
+    };
+
+    function fmSparkline(vals, pct = true) {
+      if (!vals || !vals.length) return '<span style="color:#bbb">—</span>';
+      return vals.map(v => {
+        if (v === null || v === undefined) return '<span style="color:#bbb">·</span>';
+        const fmt = pct ? (v > 0 ? `+${v}%` : `${v}%`) : v;
+        const c = v > 0 ? "#1d7348" : v < 0 ? "#b03a2e" : "#888";
+        return `<span style="color:${c};font-size:11px;margin-right:3px">${fmt}</span>`;
+      }).join('');
+    }
+
+    function fmArrow(dir) {
+      if (dir === "up")   return '<span style="color:#1d7348;font-weight:bold">▲</span>';
+      if (dir === "down") return '<span style="color:#b03a2e;font-weight:bold">▼</span>';
+      return '<span style="color:#888">—</span>';
+    }
+
+    // yyyymm (申報月) → 實際營收月份標籤，e.g. "202606" → "5月"
+    function yyyymmToRevLabel(yyyymm) {
+      if (!yyyymm) return '—';
+      const y = parseInt(yyyymm.slice(0, 4));
+      const m = parseInt(yyyymm.slice(4, 6));
+      const revM = m === 1 ? 12 : m - 1;
+      const revY = m === 1 ? y - 1 : y;
+      const nowY = new Date().getFullYear();
+      return revY === nowY ? `${revM}月` : `${revY}/${revM}月`;
+    }
+
+    function renderFmResults(data) {
+      const tierFilter = document.querySelector("#fmTierFilter").value;
+      let rows = data.rows || [];
+      if (tierFilter) rows = rows.filter(r => r.tier === tierFilter);
+
+      // 統計各月份分布
+      const monthCounts = {};
+      (data.rows || []).forEach(r => {
+        const lbl = yyyymmToRevLabel(r.latest_yyyymm);
+        monthCounts[lbl] = (monthCounts[lbl] || 0) + 1;
+      });
+      const monthNote = Object.entries(monthCounts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([m, n]) => `${m} ${n}檔`).join('、');
+
+      fmMeta.innerHTML = `共 ${data.total} 檔（顯示 ${rows.length} 筆） · 最低月營收 ${data.min_revenue_yi} 億 · 排序：${data.sort_by}<br>
+        <span style="color:#b07020;font-size:11px">⚠ 資料月份混搭：${monthNote}。7/10 截止日後將統一為6月。YoY 各自與「相同月份去年」比較，加速度為近3個月 YoY 趨勢，跨股比較請留意月份差異。</span>`;
+
+      if (!rows.length) {
+        fmResults.innerHTML = '<div class="empty">無符合條件的個股</div>';
+        return;
+      }
+
+      const html = `<div style="overflow-x:auto">
+<table class="daily-table" style="font-size:12px;min-width:960px">
+<thead>
+  <tr>
+    <th style="text-align:left">代號</th>
+    <th style="text-align:left">名稱</th>
+    <th style="text-align:left">產業</th>
+    <th>動能</th>
+    <th title="申報月份 - 1 = 實際營收月份">資料月</th>
+    <th>營收(億)</th>
+    <th title="各自與相同月份去年比較">YoY m0 / m1 / m2</th>
+    <th title="最新月YoY - 三個月前YoY，正值代表加速">加速度</th>
+    <th>MoM</th>
+    <th>EPS趨勢</th>
+    <th>EPS近5季</th>
+    <th>毛利率%</th>
+    <th title="最新季毛利率 vs 一年前同季">毛利YoY改善</th>
+  </tr>
+</thead>
+<tbody>
+${rows.map(r => {
+  const tierC = TIER_COLOR[r.tier] || "#888";
+  const accel = r.rev_accel !== null ? (r.rev_accel > 0 ? `<span style="color:#1d7348">+${r.rev_accel}%</span>` : `<span style="color:#b03a2e">${r.rev_accel}%</span>`) : '—';
+  const mom = r.rev_mom !== null ? (r.rev_mom > 0 ? `<span style="color:#1d7348">+${r.rev_mom}%</span>` : `<span style="color:#b03a2e">${r.rev_mom}%</span>`) : '—';
+  const gmChg = r.gm_yoy_chg !== null ? (r.gm_yoy_chg > 0 ? `<span style="color:#1d7348">+${r.gm_yoy_chg}pp</span>` : `<span style="color:#b03a2e">${r.gm_yoy_chg}pp</span>`) : '—';
+  const yoyM = [r.rev_yoy_m0, r.rev_yoy_m1, r.rev_yoy_m2].map(v =>
+    v !== null ? (v > 0 ? `<span style="color:#1d7348">+${v}%</span>` : `<span style="color:#b03a2e">${v}%</span>`) : '—'
+  ).join(' / ');
+  const revLabel = yyyymmToRevLabel(r.latest_yyyymm);
+  // 6月資料用綠底標示（較新）
+  const yyyymmMonth = r.latest_yyyymm ? parseInt(r.latest_yyyymm.slice(4)) : 0;
+  const isLatestMonth = yyyymmMonth === Math.max(...(data.rows||[]).map(x => x.latest_yyyymm ? parseInt(x.latest_yyyymm.slice(4)) : 0));
+  const monthStyle = isLatestMonth ? 'background:#e8f5e9;color:#1d7348;font-weight:bold;text-align:center' : 'color:#888;text-align:center';
+  return `<tr>
+    <td><a class="sym-link" onclick="document.querySelector('#symbols').value='${r.symbol}.TW';document.querySelector('[data-page=manualPage]').click();setTimeout(()=>document.querySelector('#analyze').click(),50)">${r.symbol}</a></td>
+    <td>${r.name}</td>
+    <td style="color:#666;font-size:11px">${r.industry}</td>
+    <td style="text-align:center"><span style="color:${tierC};font-weight:bold">${r.tier}</span></td>
+    <td style="${monthStyle}">${revLabel}</td>
+    <td>${r.latest_rev_yi}</td>
+    <td style="white-space:nowrap">${yoyM}</td>
+    <td>${accel}</td>
+    <td>${mom}</td>
+    <td style="text-align:center">${fmArrow(r.eps_trend_dir)}</td>
+    <td style="white-space:nowrap">${fmSparkline(r.eps_vals, false)}</td>
+    <td>${r.gm_latest !== null ? r.gm_latest + '%' : '—'}</td>
+    <td>${gmChg}</td>
+  </tr>`;
+}).join('')}
+</tbody>
+</table></div>`;
+      fmResults.innerHTML = html;
+    }
+
+    async function runFundMomentumScan() {
+      const minRev = document.querySelector("#fmMinRev").value || 1;
+      const sort = document.querySelector("#fmSort").value;
+      fmResults.innerHTML = '<div class="empty">掃描中，請稍候（約 3-8 秒）...</div>';
+      fmMeta.textContent = "掃描中...";
+      try {
+        const data = await fetch(`/api/fundamental-momentum?min_rev=${minRev}&sort=${sort}&limit=200`).then(r => r.json());
+        if (data.error) { fmMeta.textContent = "錯誤：" + data.error; return; }
+        renderFmResults(data);
+      } catch (e) {
+        fmMeta.textContent = "請求失敗：" + e.message;
+      }
+    }
+
+    document.querySelector("#fmTierFilter").addEventListener("change", () => {
+      if (window._fmLastData) renderFmResults(window._fmLastData);
+    });
+
+    fmRun.onclick = async function() {
+      const minRev = document.querySelector("#fmMinRev").value || 1;
+      const sort = document.querySelector("#fmSort").value;
+      fmResults.innerHTML = '<div class="empty">掃描中，請稍候（約 3-8 秒）...</div>';
+      fmMeta.textContent = "掃描中...";
+      try {
+        const data = await fetch(`/api/fundamental-momentum?min_rev=${minRev}&sort=${sort}&limit=200`).then(r => r.json());
+        if (data.error) { fmMeta.textContent = "錯誤：" + data.error; return; }
+        window._fmLastData = data;
+        renderFmResults(data);
+      } catch(e) { fmMeta.textContent = "請求失敗：" + e.message; }
+    };
   </script>
 </body>
 </html>

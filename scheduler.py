@@ -292,6 +292,7 @@ def scheduler_loop(settings: dict[str, Any]) -> None:
         get_universe_count,
         refresh_aegis_snapshot_if_needed,
         run_due_active_etf_import,
+        get_fundamental_momentum_scan,
     )
     from scan import run_due_daily_recommendation_log, scan_market, refresh_pending_outcome_symbols  # circular dep break
     update_scheduler_state(enabled=True, running=False, started_at=utc_now(), last_error=None, run_count=0, **settings)
@@ -318,7 +319,67 @@ def scheduler_loop(settings: dict[str, Any]) -> None:
                 core_rows = get_priority_universe(settings.get("asset_type"), core_limit)
                 available = get_universe_count(settings.get("asset_type"))
             core_symbols = {row["symbol"] for row in core_rows}
-            discovery_limit = max(1, batch_size - len(core_rows))
+
+            # ── Fundamental momentum override ────────────────────────────
+            # After Aegis refresh, identify stocks with accelerating fundamentals
+            # that haven't been recently scanned. These skip the discovery cursor.
+            fm_override_rows: list[dict[str, Any]] = []
+            fm_override_symbols: set[str] = set()
+            fm_slots = max(1, batch_size // 5)  # up to 20% of batch reserved for fm
+            try:
+                fm_result = get_fundamental_momentum_scan(min_revenue_yi=1.0, limit=80, sort_by="rev_accel")
+                fm_scope_symbols: set[str] = set()
+                if scope:
+                    with db_connect() as _c:
+                        fm_scope_symbols = {
+                            r[0] for r in _c.execute(
+                                "SELECT symbol FROM universe_membership WHERE scope = ?", (scope,)
+                            ).fetchall()
+                        }
+                # Stocks recently scanned (within last 4 hours) — skip them
+                recently_scanned: set[str] = set()
+                with db_connect() as _c:
+                    cutoff = (
+                        datetime.now(tz=timezone.utc) - timedelta(hours=4)
+                    ).isoformat()
+                    recently_scanned = {
+                        r[0] for r in _c.execute(
+                            "SELECT DISTINCT symbol FROM price_snapshots WHERE captured_at >= ?",
+                            (cutoff,),
+                        ).fetchall()
+                    }
+                for row in fm_result.get("rows", []):
+                    if len(fm_override_rows) >= fm_slots:
+                        break
+                    if row["tier"] not in ("強加速", "加速"):
+                        break
+                    if row.get("rev_accel") is None or row["rev_accel"] < 15:
+                        continue
+                    sym = row["symbol"] + ".TW"
+                    if sym in core_symbols or sym in fm_override_symbols:
+                        continue
+                    if scope and sym not in fm_scope_symbols:
+                        continue
+                    if sym in recently_scanned:
+                        continue
+                    fm_override_rows.append({
+                        "symbol": sym,
+                        "name": row["name"],
+                        "asset_type": "stock",
+                        "currency": "TWD",
+                        "sector": row.get("industry", ""),
+                        "industry": row.get("industry", ""),
+                        "enabled": 1,
+                        "_fm_tier": row["tier"],
+                        "_fm_accel": row.get("rev_accel"),
+                    })
+                    fm_override_symbols.add(sym)
+            except Exception as _fm_exc:
+                fm_override_rows = []
+                fm_override_symbols = set()
+
+            already_in_batch = core_symbols | fm_override_symbols
+            discovery_limit = max(1, batch_size - len(core_rows) - len(fm_override_rows))
             discovery_rows = []
             discovery_offset = offset
             attempts = 0
@@ -327,15 +388,15 @@ def scheduler_loop(settings: dict[str, Any]) -> None:
                     rows = get_scoped_universe(
                         scope,
                         settings.get("asset_type"),
-                        discovery_limit + len(core_rows),
+                        discovery_limit + len(core_rows) + len(fm_override_rows),
                         discovery_offset,
                     )
                 else:
-                    rows = get_universe(settings.get("asset_type"), discovery_limit + len(core_rows), discovery_offset)
-                discovery_rows.extend(row for row in rows if row["symbol"] not in core_symbols)
+                    rows = get_universe(settings.get("asset_type"), discovery_limit + len(core_rows) + len(fm_override_rows), discovery_offset)
+                discovery_rows.extend(row for row in rows if row["symbol"] not in already_in_batch)
                 discovery_offset = (discovery_offset + max(1, len(rows))) % available
                 attempts += 1
-            universe_rows = core_rows + discovery_rows[:discovery_limit]
+            universe_rows = core_rows + fm_override_rows + discovery_rows[:discovery_limit]
             market_scan_started = time.time()
             result = scan_market(
                 limit=len(universe_rows),
@@ -387,6 +448,8 @@ def scheduler_loop(settings: dict[str, Any]) -> None:
                     "offset": result.get("offset"),
                     "next_offset": next_offset,
                     "core_count": len(core_rows),
+                    "fm_override_count": len(fm_override_rows),
+                    "fm_override_symbols": [r["symbol"] for r in fm_override_rows],
                     "discovery_count": len(discovery_rows[:discovery_limit]),
                     "cache_hits": result.get("cache_hits"),
                     "refreshed_count": result.get("refreshed_count"),
