@@ -61,7 +61,7 @@ WATCHLIST_STATE: dict[str, Any] = {
 WATCHLIST_BASELINES: dict[str, dict[str, Any]] = {}
 TAIPEI_TZ = timezone(timedelta(hours=8))
 ACTIVE_ETF_IMPORT_SLOTS = ["16:40", "20:40"]
-DAILY_RECOMMENDATION_LOG_TIME = "16:10"
+DAILY_RECOMMENDATION_LOG_TIME = "09:00"
 ACTIVE_ETF_IMPORT_STATE: dict[str, Any] = {
     "enabled": True,
     "slots": ACTIVE_ETF_IMPORT_SLOTS,

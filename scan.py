@@ -50,6 +50,9 @@ def recommendation_log_row(item: dict[str, Any]) -> dict[str, Any]:
         "data_coverage": item.get("data_coverage"),
         "captured_at": item.get("captured_at"),
         "thesis": item.get("thesis"),
+        "active_etf_change_count": item.get("active_etf_change_count"),
+        "active_etf_avg_score": item.get("active_etf_avg_score"),
+        "active_etf_note": item.get("active_etf_note"),
     }
 
 
@@ -98,12 +101,12 @@ def write_daily_recommendation_log(force: bool = False, limit: int = 50) -> dict
         "",
         "This is a research log for future review/backtesting, not personalized financial advice or an order instruction.",
         "",
-        "| Rank | Symbol | Name | Tier | Score | Price | 1D | RS 3M | ADX | Volume | Financial | Thesis |",
-        "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |",
+        "| Rank | Symbol | Name | Tier | Score | Price | 1D | RS 3M | ADX | Volume | Financial | Active ETF flow | Thesis |",
+        "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- |",
     ]
     for index, row in enumerate(rows, 1):
         lines.append(
-            "| {rank} | {symbol} | {name} | {tier} | {score} | {price} | {change_1d} | {rs_3m} | {adx} | {volume} | {financial} | {thesis} |".format(
+            "| {rank} | {symbol} | {name} | {tier} | {score} | {price} | {change_1d} | {rs_3m} | {adx} | {volume} | {financial} | {etf_flow} | {thesis} |".format(
                 rank=index,
                 symbol=row.get("symbol") or "",
                 name=(row.get("name") or "").replace("|", "\\|"),
@@ -115,6 +118,7 @@ def write_daily_recommendation_log(force: bool = False, limit: int = 50) -> dict
                 adx=row.get("adx_14") if row.get("adx_14") is not None else "",
                 volume=row.get("volume") if row.get("volume") is not None else "",
                 financial=row.get("financial_audit_status") or "",
+                etf_flow=(row.get("active_etf_note") or "").replace("|", "\\|"),
                 thesis=(row.get("thesis") or "").replace("|", "\\|"),
             )
         )

@@ -65,6 +65,22 @@ if (-not $scheduler.thread_alive) {
     throw "Scheduler thread is not alive after start. last_error=$($scheduler.last_error)"
 }
 
+# --- Force active ETF flow sync at startup ---
+# The 16:40/20:40 scheduled slots only fire if the backend happens to be running at
+# those exact times; since this app is started/stopped manually, force a sync now so
+# ETF flow data (feeds the active_etf_flow factor and the daily recommendation log)
+# is as fresh as possible whenever the backend comes up, regardless of time of day.
+try {
+    $etfSync = Invoke-RestMethod -Uri ($base + '/api/active-etf/schedule/run-due?force=1') -TimeoutSec 60
+    if ($etfSync.ran) {
+        Write-Host "[Investment] Active ETF flow sync: ran (slot=$($etfSync.scheduled_slot))  error=$($etfSync.error)"
+    } else {
+        Write-Host "[Investment] Active ETF flow sync: skipped ($($etfSync.reason))"
+    }
+} catch {
+    Write-Host "[Investment] Active ETF flow sync failed at startup (non-fatal): $($_.Exception.Message)"
+}
+
 # --- Print status summary ---
 $latest = Invoke-RestMethod -Uri ($base + '/api/dashboard/latest') -TimeoutSec 10
 $tw     = Invoke-RestMethod -Uri ($base + '/api/universe/tw-full-market/status') -TimeoutSec 10
@@ -77,14 +93,14 @@ Write-Host "[Investment] Full market universe: $($tw.universe_count)  snapshot c
 Write-Host "[Investment] Next run UTC: $($scheduler.next_run_at)"
 Write-Host "[Investment] Open UI: $base"
 
-# --- Catch-up scan if >70% stale ---
+# --- Catch-up scan if >70% stale (scoped to tw_full_market, not the whole legacy universe table) ---
 $needsCatchup = $false
 try {
-    $totalSnaps = [int]($latest.coverage.snapshot_symbol_count)
-    $freshSnaps = [int]($latest.coverage.updated_24h_count)
+    $totalSnaps = [int]($tw.snapshot_symbol_count)
+    $freshSnaps = [int]($tw.updated_24h_count)
     if ($totalSnaps -gt 0) {
         $staleRatio = ($totalSnaps - $freshSnaps) / $totalSnaps
-        Write-Host ("[Investment] Snapshot freshness: $freshSnaps/$totalSnaps updated in 24h (" + [math]::Round((1 - $staleRatio) * 100, 1) + "% fresh).")
+        Write-Host ("[Investment] tw_full_market snapshot freshness: $freshSnaps/$totalSnaps updated in 24h (" + [math]::Round((1 - $staleRatio) * 100, 1) + "% fresh).")
         if ($staleRatio -gt 0.7) {
             $needsCatchup = $true
             Write-Host "[Investment] >70% stale — catch-up scan will run in background."
@@ -93,7 +109,9 @@ try {
 } catch { $needsCatchup = $true }
 
 if ($needsCatchup) {
-    $catchupScript = 'for ($i=0; $i -lt 10; $i++) { try { Invoke-RestMethod -Uri ''http://127.0.0.1:8765/api/scan?scope=tw_full_market&limit=250&refresh_minutes=0'' -TimeoutSec 180 | Out-Null } catch { }; Start-Sleep -Seconds 2 }'
+    $catchupBatchSize = 250
+    $catchupLoops = [Math]::Ceiling($tw.universe_count / $catchupBatchSize)
+    $catchupScript = "for (`$i=0; `$i -lt $catchupLoops; `$i++) { `$off = `$i * $catchupBatchSize; try { Invoke-RestMethod -Uri (`"http://127.0.0.1:8765/api/scan?scope=tw_full_market&limit=$catchupBatchSize&refresh_minutes=0&offset=`$off`") -TimeoutSec 400 | Out-Null } catch { }; Start-Sleep -Seconds 2 }"
     Start-Process powershell -ArgumentList "-NoProfile -WindowStyle Hidden -Command $catchupScript" -WindowStyle Hidden
-    Write-Host "[Investment] Catch-up: 10x250 scans running in background (covers all 2454 symbols, ~15 min)."
+    Write-Host "[Investment] Catch-up: $catchupLoops x $catchupBatchSize scans running in background with advancing offset (covers all $($tw.universe_count) symbols, ~$([Math]::Round($catchupLoops * 1.5)) min)."
 }

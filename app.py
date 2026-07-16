@@ -2581,6 +2581,30 @@ def tw_full_market_strict_candidate_row(item: dict[str, Any]) -> dict[str, Any] 
         "rs_3m_percentile": rs_3m,
         "volatility_regime_percentile": safe_float(metrics.get("volatility_regime_percentile")),
         "spike_risk": spike_risk,
+        **active_etf_flow_summary(data_quality),
+    }
+
+
+def active_etf_flow_summary(data_quality: dict[str, Any]) -> dict[str, Any]:
+    evidence = (data_quality.get("factors") or {}).get("active_etf_flow", {}).get("evidence") or {}
+    change_count = evidence.get("change_count") or 0
+    if not change_count:
+        return {
+            "active_etf_change_count": 0,
+            "active_etf_avg_score": None,
+            "active_etf_note": None,
+        }
+    latest_symbol = evidence.get("latest_etf_symbol")
+    latest_date = evidence.get("latest_trade_date")
+    latest_type = evidence.get("latest_change_type")
+    latest_label = active_etf_change_label(latest_type) if latest_type else None
+    note = f"近期 {change_count} 筆異動"
+    if latest_symbol and latest_date and latest_label:
+        note += f"，最新 {latest_symbol} {latest_date} {latest_label}"
+    return {
+        "active_etf_change_count": change_count,
+        "active_etf_avg_score": safe_float(evidence.get("avg_score")),
+        "active_etf_note": note,
     }
 
 

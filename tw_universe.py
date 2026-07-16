@@ -1,7 +1,7 @@
 from __future__ import annotations
 import csv, json, re
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from common import (
     ROOT, AEGIS_SNAPSHOT_DB, EXPANDED_UNIVERSE, YAHOO_SCREENER_IDS, TAIPEI_TZ,
@@ -564,6 +564,8 @@ def sync_tw_full_market_universe_from_aegis() -> dict[str, Any]:
 
 
 def get_tw_full_market_status() -> dict[str, Any]:
+    cutoff_24h = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+    cutoff_7d = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
     with db_connect() as conn:
         total = conn.execute(
             "SELECT COUNT(*) FROM universe_membership WHERE scope = ?",
@@ -577,6 +579,24 @@ def get_tw_full_market_status() -> dict[str, Any]:
             WHERE um.scope = ?
             """,
             (TW_FULL_MARKET_SCOPE,),
+        ).fetchone()[0]
+        updated_24h = conn.execute(
+            """
+            SELECT COUNT(DISTINCT um.symbol)
+            FROM universe_membership um
+            JOIN price_snapshots ps ON ps.symbol = um.symbol
+            WHERE um.scope = ? AND ps.captured_at >= ?
+            """,
+            (TW_FULL_MARKET_SCOPE, cutoff_24h),
+        ).fetchone()[0]
+        updated_7d = conn.execute(
+            """
+            SELECT COUNT(DISTINCT um.symbol)
+            FROM universe_membership um
+            JOIN price_snapshots ps ON ps.symbol = um.symbol
+            WHERE um.scope = ? AND ps.captured_at >= ?
+            """,
+            (TW_FULL_MARKET_SCOPE, cutoff_7d),
         ).fetchone()[0]
         by_market = conn.execute(
             """
@@ -617,6 +637,8 @@ def get_tw_full_market_status() -> dict[str, Any]:
         "snapshot_symbol_count": int(snapshot_symbols or 0),
         "unsnapped_count": max(0, int(total or 0) - int(snapshot_symbols or 0)),
         "snapshot_coverage_percent": round((snapshot_symbols or 0) / total * 100, 2) if total else 0,
+        "updated_24h_count": int(updated_24h or 0),
+        "updated_7d_count": int(updated_7d or 0),
         "tradable_quote_count": tradable_count,
         "no_quote_count": int(no_quote_count or 0),
         "tradable_quote_coverage_percent": round(tradable_count / total * 100, 2) if total else 0,
