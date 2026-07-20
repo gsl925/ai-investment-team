@@ -4,12 +4,22 @@ $base = 'http://127.0.0.1:8765'
 $root = $PSScriptRoot
 
 # --- Kill existing backend ---
-$existing = Get-NetTCPConnection -LocalPort 8765 -ErrorAction SilentlyContinue
-if ($existing) {
-    $oldProcId = $existing[0].OwningProcess
+# Only target the socket actually in Listen state — a plain LocalPort filter can also
+# match stale TIME_WAIT rows whose OwningProcess reports as 0 (process already exited),
+# which makes Stop-Process silently no-op and leaves the real backend running alongside
+# a newly launched one (two writers on the same journal_mode=MEMORY sqlite file at once
+# is what corrupted runtime_db/investment_live.db on 2026-07-20).
+$existing = Get-NetTCPConnection -LocalPort 8765 -State Listen -ErrorAction SilentlyContinue
+$oldProcIds = $existing | Select-Object -ExpandProperty OwningProcess -Unique | Where-Object { $_ -gt 0 }
+foreach ($oldProcId in $oldProcIds) {
     Write-Host "[Investment] Stopping existing backend (PID $oldProcId) ..."
     Stop-Process -Id $oldProcId -Force -ErrorAction SilentlyContinue
-    Start-Sleep -Seconds 2
+}
+if ($oldProcIds) {
+    for ($i = 0; $i -lt 20; $i++) {
+        Start-Sleep -Milliseconds 500
+        if (-not (Get-NetTCPConnection -LocalPort 8765 -State Listen -ErrorAction SilentlyContinue)) { break }
+    }
 }
 
 # --- Launch new backend ---

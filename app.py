@@ -1852,6 +1852,9 @@ def get_history(symbol: str, limit: int = 30) -> dict[str, Any]:
     }
 
 
+TREND_CONTEXT_MAX_LOOKBACK_DAYS = 14
+
+
 def get_symbol_trend_context(symbol: str, limit: int = 10) -> dict[str, Any]:
     history = get_history(symbol, limit)
     snapshots = list(reversed(history["snapshots"]))
@@ -1863,8 +1866,20 @@ def get_symbol_trend_context(symbol: str, limit: int = 10) -> dict[str, Any]:
             "latest_score": None,
             "latest_price": None,
         }
-    first = snapshots[0]
     latest = snapshots[-1]
+    # "last N snapshots" can span months when a symbol's scan cadence was sparse
+    # (e.g. during a scheduler outage), so restrict the comparison baseline to
+    # snapshots within a recent lookback window rather than whichever snapshot
+    # happens to be oldest among the last `limit` rows.
+    first = latest
+    latest_captured_at = parse_utc_timestamp(latest.get("captured_at"))
+    cutoff = latest_captured_at - timedelta(days=TREND_CONTEXT_MAX_LOOKBACK_DAYS) if latest_captured_at else None
+    for snap in snapshots:
+        captured_at = parse_utc_timestamp(snap.get("captured_at"))
+        if cutoff is not None and captured_at is not None and captured_at < cutoff:
+            continue
+        first = snap
+        break
     first_score = safe_float(first.get("score"))
     latest_score = safe_float(latest.get("score"))
     first_price = safe_float(first.get("price"))
