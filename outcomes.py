@@ -9,6 +9,38 @@ from common import db_connect, parse_utc_timestamp, safe_float, utc_now
 
 OUTCOME_HORIZONS = [5, 20, 60]
 
+# 2026-07-21: raw >500% moves were meant to catch data errors, but investigation of
+# 5D/20D outliers (e.g. 6182.TW, 8046.TW, 4556.TW, 2243.TW) showed 3-5x price jumps
+# that snap to a new stable level and then trend smoothly — the signature of an
+# unadjusted Taiwan capital reduction (減資) or reverse split, not a real return a
+# holder experienced. Lowered the absolute threshold and added a same-window
+# discontinuity check so smaller-ratio corporate actions get caught too.
+SUSPICIOUS_RETURN_THRESHOLD_PERCENT = 150.0
+SUSPICIOUS_JUMP_RATIO = 1.8
+
+
+def _has_price_discontinuity(conn: sqlite3.Connection, symbol: str, start_at: str, end_at: str) -> bool:
+    rows = conn.execute(
+        """
+        SELECT price
+        FROM price_snapshots
+        WHERE symbol = ? AND captured_at >= ? AND captured_at <= ? AND price IS NOT NULL
+        ORDER BY captured_at ASC
+        """,
+        (symbol, start_at, end_at),
+    ).fetchall()
+    prev = None
+    for row in rows:
+        price = safe_float(row["price"])
+        if price is None or price <= 0:
+            continue
+        if prev is not None and prev > 0:
+            ratio = price / prev
+            if ratio >= SUSPICIOUS_JUMP_RATIO or ratio <= 1 / SUSPICIOUS_JUMP_RATIO:
+                return True
+        prev = price
+    return False
+
 
 def add_recommendation_outcomes(
     conn: sqlite3.Connection,
@@ -108,7 +140,10 @@ def update_recommendation_outcomes(limit: int = 500) -> dict[str, Any]:
             status = "open_no_price"
             if start_price is not None and start_price > 0 and outcome_price is not None:
                 return_percent = (outcome_price / start_price - 1) * 100
-                status = "suspicious" if abs(return_percent) > 500 else "ready"
+                is_suspicious = abs(return_percent) > SUSPICIOUS_RETURN_THRESHOLD_PERCENT or _has_price_discontinuity(
+                    conn, row["symbol"], row["start_at"], outcome["captured_at"]
+                )
+                status = "suspicious" if is_suspicious else "ready"
             else:
                 missing_price += 1
             conn.execute(
@@ -340,6 +375,40 @@ def summarize_outcome_group(group_type: str, label: str, returns: list[float]) -
         "worst_return_percent": ordered[0],
         "best_return_percent": ordered[-1],
     }
+
+
+def reclassify_recommendation_outcomes(limit: int = 50000) -> dict[str, Any]:
+    """One-off maintenance pass: re-apply the current suspicious-detection rules to
+    rows already marked 'ready', so a threshold/rule change (like 2026-07-21's) takes
+    effect on historical rows without waiting for them to re-mature."""
+    limit = max(1, min(limit, 100000))
+    now = utc_now()
+    reclassified = 0
+    checked = 0
+    with db_connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT id, symbol, start_at, outcome_at, return_percent
+            FROM recommendation_outcomes
+            WHERE status = 'ready' AND return_percent IS NOT NULL
+            ORDER BY id ASC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+        for row in rows:
+            checked += 1
+            return_percent = row["return_percent"]
+            is_suspicious = abs(return_percent) > SUSPICIOUS_RETURN_THRESHOLD_PERCENT or _has_price_discontinuity(
+                conn, row["symbol"], row["start_at"], row["outcome_at"] or row["start_at"]
+            )
+            if is_suspicious:
+                reclassified += 1
+                conn.execute(
+                    "UPDATE recommendation_outcomes SET status = 'suspicious', updated_at = ? WHERE id = ?",
+                    (now, row["id"]),
+                )
+    return {"checked": checked, "reclassified": reclassified, "generated_at": now}
 
 
 def backfill_recommendation_outcomes(limit: int = 1000) -> dict[str, Any]:
