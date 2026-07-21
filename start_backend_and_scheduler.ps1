@@ -121,7 +121,8 @@ try {
 if ($needsCatchup) {
     $catchupBatchSize = 250
     $catchupLoops = [Math]::Ceiling($tw.universe_count / $catchupBatchSize)
-    $catchupScript = "for (`$i=0; `$i -lt $catchupLoops; `$i++) { `$off = `$i * $catchupBatchSize; try { Invoke-RestMethod -Uri (`"http://127.0.0.1:8765/api/scan?scope=tw_full_market&limit=$catchupBatchSize&refresh_minutes=0&offset=`$off`") -TimeoutSec 400 | Out-Null } catch { }; Start-Sleep -Seconds 2 }"
-    Start-Process powershell -ArgumentList "-NoProfile -WindowStyle Hidden -Command $catchupScript" -WindowStyle Hidden
-    Write-Host "[Investment] Catch-up: $catchupLoops x $catchupBatchSize scans running in background with advancing offset (covers all $($tw.universe_count) symbols, ~$([Math]::Round($catchupLoops * 1.5)) min)."
+    $catchupScriptPath = Join-Path $root 'catchup_scan.ps1'
+    $catchupArgs = @('-NoProfile', '-WindowStyle', 'Hidden', '-File', $catchupScriptPath, '-BatchSize', $catchupBatchSize, '-Loops', $catchupLoops, '-BaseUrl', $base)
+    Start-Process powershell -ArgumentList $catchupArgs -WindowStyle Hidden
+    Write-Host "[Investment] Catch-up: $catchupLoops x $catchupBatchSize scans running in background with advancing offset (covers all $($tw.universe_count) symbols, ~$([Math]::Round($catchupLoops * 1.5)) min). Progress: logs\catchup_scan.log"
 }
