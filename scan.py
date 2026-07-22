@@ -53,6 +53,89 @@ def recommendation_log_row(item: dict[str, Any]) -> dict[str, Any]:
         "active_etf_change_count": item.get("active_etf_change_count"),
         "active_etf_avg_score": item.get("active_etf_avg_score"),
         "active_etf_note": item.get("active_etf_note"),
+        "persistence_score": item.get("persistence_score"),
+        "persistence_coverage_percent": item.get("persistence_coverage_percent"),
+        "persistence_streak": item.get("persistence_streak"),
+        "persistence_qualified": item.get("persistence_qualified"),
+        "persistence_appearances": item.get("persistence_appearances"),
+        "persistence_logged_days": item.get("persistence_logged_days"),
+    }
+
+
+def persist_daily_recommendation_persistence_rows(day: str, rows: list[dict[str, Any]]) -> int:
+    written = 0
+    now = utc_now()
+    with db_connect() as conn:
+        for row in rows:
+            symbol = row.get("symbol")
+            if not symbol:
+                continue
+            conn.execute(
+                """
+                INSERT INTO daily_recommendation_persistence (
+                    date, symbol, name, tier, price, score, appearances, logged_days,
+                    coverage_percent, streak, persistence_score, qualified, created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(date, symbol) DO UPDATE SET
+                    name=excluded.name, tier=excluded.tier, price=excluded.price,
+                    score=excluded.score, appearances=excluded.appearances,
+                    logged_days=excluded.logged_days, coverage_percent=excluded.coverage_percent,
+                    streak=excluded.streak, persistence_score=excluded.persistence_score,
+                    qualified=excluded.qualified
+                """,
+                (
+                    day,
+                    symbol,
+                    row.get("name"),
+                    row.get("tier"),
+                    safe_float(row.get("price")),
+                    row.get("score"),
+                    row.get("persistence_appearances"),
+                    row.get("persistence_logged_days"),
+                    row.get("persistence_coverage_percent"),
+                    row.get("persistence_streak"),
+                    safe_float(row.get("persistence_score")),
+                    1 if row.get("persistence_qualified") else 0,
+                    now,
+                ),
+            )
+            written += 1
+    return written
+
+
+def backfill_daily_recommendation_persistence(days: int = 30, min_days: int = 2) -> dict[str, Any]:
+    all_history = read_daily_recommendation_log_history(limit=100)
+    dates = sorted({record.get("date") for record in all_history.get("records", []) if record.get("date")})
+    days_written = 0
+    rows_written = 0
+    for day in dates:
+        result = compute_recommendation_persistence(days=days, min_days=min_days, as_of_date=day)
+        logged_days = result.get("logged_days")
+        rows = []
+        for item in result.get("items", []):
+            if not item.get("in_latest_log"):
+                continue
+            rows.append({
+                "symbol": item.get("symbol"),
+                "name": item.get("name"),
+                "tier": item.get("latest_tier"),
+                "price": item.get("latest_price"),
+                "score": item.get("score_last"),
+                "persistence_appearances": item.get("appearances"),
+                "persistence_logged_days": logged_days,
+                "persistence_coverage_percent": item.get("coverage_percent"),
+                "persistence_streak": item.get("streak"),
+                "persistence_score": item.get("persistence_score"),
+                "persistence_qualified": item.get("qualified"),
+            })
+        if rows:
+            rows_written += persist_daily_recommendation_persistence_rows(day, rows)
+            days_written += 1
+    return {
+        "days_found": len(dates),
+        "days_written": days_written,
+        "rows_written": rows_written,
     }
 
 
@@ -137,6 +220,7 @@ def write_daily_recommendation_log(force: bool = False, limit: int = 50) -> dict
             kept_lines.append(existing)
     kept_lines.append(json.dumps(record, ensure_ascii=False, separators=(",", ":")))
     paths["jsonl"].write_text("\n".join(kept_lines) + "\n", encoding="utf-8")
+    persistence_rows_written = persist_daily_recommendation_persistence_rows(day, rows)
     return {
         "ran": True,
         "date": day,
@@ -145,11 +229,12 @@ def write_daily_recommendation_log(force: bool = False, limit: int = 50) -> dict
         "markdown_path": str(paths["markdown"].relative_to(ROOT)),
         "jsonl_path": str(paths["jsonl"].relative_to(ROOT)),
         "recommendation_count": len(rows),
+        "persistence_rows_written": persistence_rows_written,
         "counts": payload.get("counts"),
     }
 
 
-def read_daily_recommendation_log_history(limit: int = 20) -> dict[str, Any]:
+def read_daily_recommendation_log_history(limit: int = 20, as_of_date: str | None = None) -> dict[str, Any]:
     limit = max(1, min(limit, 100))
     paths = daily_recommendation_log_paths(datetime.now(TAIPEI_TZ).strftime("%Y-%m-%d"))
     jsonl_path = paths["jsonl"]
@@ -174,6 +259,8 @@ def read_daily_recommendation_log_history(limit: int = 20) -> dict[str, Any]:
             record = json.loads(line)
         except json.JSONDecodeError:
             parse_errors += 1
+            continue
+        if as_of_date and str(record.get("date") or "") > as_of_date:
             continue
         records.append(record)
         if len(records) >= limit:
@@ -252,10 +339,10 @@ RECOMMENDATION_PERSISTENCE_RULES = {
 }
 
 
-def compute_recommendation_persistence(days: int = 30, min_days: int = 2) -> dict[str, Any]:
+def compute_recommendation_persistence(days: int = 30, min_days: int = 2, as_of_date: str | None = None) -> dict[str, Any]:
     days = max(1, min(days, 100))
     min_days = max(1, min(min_days, days))
-    history = read_daily_recommendation_log_history(limit=days)
+    history = read_daily_recommendation_log_history(limit=days, as_of_date=as_of_date)
 
     # One record per date (latest generation wins), then order ascending by date.
     by_date: dict[str, dict[str, Any]] = {}

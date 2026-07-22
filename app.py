@@ -148,6 +148,7 @@ from scan import (
     daily_recommendation_log_paths, recommendation_log_row,
     write_daily_recommendation_log, read_daily_recommendation_log_history,
     RECOMMENDATION_PERSISTENCE_RULES, compute_recommendation_persistence,
+    backfill_daily_recommendation_persistence,
     get_daily_recommendation_performance, run_due_daily_recommendation_log,
     build_opportunity, save_scan_run, append_jsonl, export_scan_markdown,
     scan_universe_rows, scan_market,
@@ -442,6 +443,27 @@ def init_db() -> None:
 
             CREATE INDEX IF NOT EXISTS idx_recommendation_outcomes_symbol_horizon
                 ON recommendation_outcomes(symbol, horizon_days, start_at DESC);
+
+            CREATE TABLE IF NOT EXISTS daily_recommendation_persistence (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date TEXT NOT NULL,
+                symbol TEXT NOT NULL,
+                name TEXT,
+                tier TEXT,
+                price REAL,
+                score INTEGER,
+                appearances INTEGER,
+                logged_days INTEGER,
+                coverage_percent REAL,
+                streak INTEGER,
+                persistence_score REAL,
+                qualified INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                UNIQUE(date, symbol)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_daily_recommendation_persistence_symbol_date
+                ON daily_recommendation_persistence(symbol, date DESC);
 
             CREATE TABLE IF NOT EXISTS scheduler_runs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -2919,11 +2941,17 @@ def get_tw_full_market_research_shortlist(limit: int = 25) -> dict[str, Any]:
     # beat same-score newcomers.
     try:
         persistence_data = compute_recommendation_persistence(days=30, min_days=2)
-        persistence_map = {
-            item["symbol"]: safe_float(item.get("persistence_score")) or 0.0
+        persistence_detail_map = {
+            item["symbol"]: item
             for item in persistence_data.get("items", [])
         }
+        persistence_map = {
+            symbol: safe_float(item.get("persistence_score")) or 0.0
+            for symbol, item in persistence_detail_map.items()
+        }
     except Exception:
+        persistence_data = None
+        persistence_detail_map = {}
         persistence_map = {}
 
     # Market regime: in bear market raise research_watch score threshold for TW stocks.
@@ -2933,8 +2961,14 @@ def get_tw_full_market_research_shortlist(limit: int = 25) -> dict[str, Any]:
     except Exception:
         tw_regime = "unknown"
     for row in candidates:
-        ps = persistence_map.get(row.get("symbol") or "", 0.0)
+        detail = persistence_detail_map.get(row.get("symbol") or "") or {}
+        ps = safe_float(detail.get("persistence_score")) or 0.0
         row["persistence_score"] = round(ps, 1) if ps else None
+        row["persistence_coverage_percent"] = detail.get("coverage_percent")
+        row["persistence_streak"] = detail.get("streak")
+        row["persistence_qualified"] = bool(detail.get("qualified"))
+        row["persistence_appearances"] = detail.get("appearances")
+        row["persistence_logged_days"] = persistence_data.get("logged_days") if persistence_data else None
         row["market_regime"] = tw_regime if row.get("asset_type") == "台股" else None
 
     # In bear market, keep only core_watch Taiwan stocks (financial_audit=pass/not_applicable).
@@ -3162,6 +3196,16 @@ class InvestmentHandler(BaseHTTPRequestHandler):
             days_value = safe_float(params.get("days", ["30"])[0])
             min_days_value = safe_float(params.get("min_days", ["2"])[0])
             json_response(self, compute_recommendation_persistence(
+                days=int(days_value) if days_value else 30,
+                min_days=int(min_days_value) if min_days_value else 2,
+            ))
+            return
+
+        if parsed.path == "/api/recommendations/persistence/backfill":
+            params = parse_qs(parsed.query)
+            days_value = safe_float(params.get("days", ["30"])[0])
+            min_days_value = safe_float(params.get("min_days", ["2"])[0])
+            json_response(self, backfill_daily_recommendation_persistence(
                 days=int(days_value) if days_value else 30,
                 min_days=int(min_days_value) if min_days_value else 2,
             ))
