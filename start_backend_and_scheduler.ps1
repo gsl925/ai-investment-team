@@ -47,7 +47,7 @@ Write-Host "[Investment] Backend ready."
 $schedulerOk = $false
 for ($attempt = 1; $attempt -le 3; $attempt++) {
     try {
-        $status = Invoke-RestMethod -Uri ($base + '/api/scheduler/start?interval_minutes=30&batch_size=25&refresh_minutes=60&min_priority=25&scope=tw_full_market') -TimeoutSec 10
+        $status = Invoke-RestMethod -Uri ($base + '/api/scheduler/start?interval_minutes=3&batch_size=80&refresh_minutes=60&min_priority=25&scope=tw_full_market') -TimeoutSec 10
         Write-Host "[Investment] Scheduler started: enabled=$($status.enabled) scope=$($status.scope)"
         $schedulerOk = $true
         break
