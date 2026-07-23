@@ -2767,6 +2767,15 @@
       `;
     }
 
+    const AGENT_LABEL_ZH = {
+      "Data Retrieval Agent": "資料蒐集 Agent",
+      "Technical Analyst Agent": "技術分析 Agent",
+      "Macro & News Analyst Agent": "總經新聞 Agent",
+      "Flow / On-chain Agent": "資金流向 Agent",
+      "Risk Officer Agent": "風控 Agent",
+      "Chief Strategist Agent": "首席策略師 Agent",
+    };
+
     function renderAgentReport(report) {
       const gaps = report.data_gaps?.length ? `資料缺口：${report.data_gaps.join("、")}` : "資料缺口：無重大缺口";
       const llmBlock = report.llm_insight
@@ -2776,7 +2785,7 @@
           : "";
       return `
         <article class="agent-card">
-          <h3>${report.agent}</h3>
+          <h3>${AGENT_LABEL_ZH[report.agent] || report.agent}</h3>
           <p><b>${report.title}</b></p>
           <p>${report.verdict}</p>
           <ul>
