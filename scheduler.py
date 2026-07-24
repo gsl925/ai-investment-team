@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 import threading
 import time
 from datetime import datetime, timedelta, timezone
+from logging.handlers import RotatingFileHandler
 from typing import Any
 
 from common import (
     ACTIVE_ETF_IMPORT_STATE,
+    LOG_DIR,
     SCHEDULER_LOCK,
     SCHEDULER_STATE,
     SCHEDULER_STOP,
@@ -20,6 +23,42 @@ from common import (
 
 SCHEDULER_THREAD: threading.Thread | None = None
 
+# Consecutive run failures at/above this count, or an overdue run past the
+# staleness threshold, means the last-known scan data may no longer be fresh
+# and the user should be alerted rather than silently reading stale numbers.
+ALERT_CONSECUTIVE_ERROR_THRESHOLD = 3
+
+
+def _build_scheduler_logger() -> logging.Logger:
+    logger = logging.getLogger("scheduler")
+    if logger.handlers:
+        return logger
+    logger.setLevel(logging.INFO)
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    handler = RotatingFileHandler(
+        LOG_DIR / "scheduler.log", maxBytes=5_000_000, backupCount=3, encoding="utf-8"
+    )
+    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+    logger.addHandler(handler)
+    logger.propagate = False
+    return logger
+
+
+SCHEDULER_LOGGER = _build_scheduler_logger()
+
+
+def write_scheduler_alert(message: str) -> None:
+    """Append a one-line entry to logs/scheduler_alerts.log — a separate,
+    intentionally short file so a real anomaly isn't buried in routine
+    per-run log noise from scheduler.log."""
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    line = f"[{utc_now()}] {message}\n"
+    try:
+        with open(LOG_DIR / "scheduler_alerts.log", "a", encoding="utf-8") as f:
+            f.write(line)
+    except OSError:
+        SCHEDULER_LOGGER.exception("Failed to write scheduler_alerts.log entry: %s", message)
+
 
 def scheduler_health_fields(state: dict[str, Any], thread: threading.Thread | None) -> dict[str, Any]:
     thread_alive = bool(thread and thread.is_alive())
@@ -27,10 +66,20 @@ def scheduler_health_fields(state: dict[str, Any], thread: threading.Thread | No
     overdue_seconds = 0
     if state.get("enabled") and next_run and not state.get("running"):
         overdue_seconds = max(0, int((datetime.now(timezone.utc) - next_run).total_seconds()))
+    interval_seconds = max(60, int(state.get("interval_minutes") or 3) * 60)
+    # "Stale" is a looser, UI-facing threshold than the 90s used below to decide
+    # whether to auto-restart a dead thread — it's meant to answer "has this been
+    # stuck long enough that the last scan data on screen might not be current."
+    stale_threshold_seconds = max(600, interval_seconds * 3)
+    consecutive_errors = int(state.get("consecutive_errors") or 0)
+    stale = bool(state.get("enabled")) and overdue_seconds >= stale_threshold_seconds
     return {
         "thread_alive": thread_alive,
         "overdue_seconds": overdue_seconds,
         "healthy": (not state.get("enabled")) or thread_alive and overdue_seconds < 90,
+        "stale": stale,
+        "consecutive_errors": consecutive_errors,
+        "should_alert": stale or consecutive_errors >= ALERT_CONSECUTIVE_ERROR_THRESHOLD,
     }
 
 
@@ -210,6 +259,13 @@ def scheduler_state(repair: bool = True) -> dict[str, Any]:
                 thread = SCHEDULER_THREAD
             health = scheduler_health_fields(state, thread)
             health["restarted"] = True
+            SCHEDULER_LOGGER.error(
+                "Scheduler thread restarted after stale state (%ss overdue)",
+                health["overdue_seconds"],
+            )
+            write_scheduler_alert(
+                f"Scheduler thread was dead/stuck ({health['overdue_seconds']}s overdue) and has been auto-restarted."
+            )
     state.update(health)
     try:
         state["persisted"] = read_scheduler_state_store(state.get("asset_type"), state.get("scope"))
@@ -432,6 +488,24 @@ def scheduler_loop(settings: dict[str, Any]) -> None:
             next_offset = (offset + discovery_limit) % available if available else 0
             settings["cursor_offset"] = next_offset
             record_scheduler_run(started_at, "ok", settings, result=result)
+            for task_name, task in scheduler_tasks.items():
+                if task.get("status") in ("warn", "error"):
+                    SCHEDULER_LOGGER.warning(
+                        "Task %s status=%s detail=%s",
+                        task_name,
+                        task.get("status"),
+                        task.get("error") or (task.get("result") or {}).get("error"),
+                    )
+            SCHEDULER_LOGGER.info(
+                "Run ok scan_run_id=%s scanned=%s opportunities=%s elapsed=%.1fs offset=%s->%s",
+                result.get("scan_run_id"),
+                result.get("scanned_count"),
+                len(result.get("opportunities", [])),
+                result.get("elapsed_seconds") or 0.0,
+                offset,
+                next_offset,
+            )
+            update_scheduler_state(consecutive_errors=0)
             write_scheduler_state_store(
                 cursor_offset=next_offset,
                 settings=settings,
@@ -468,7 +542,16 @@ def scheduler_loop(settings: dict[str, Any]) -> None:
         except Exception as exc:
             message = str(exc)
             record_scheduler_run(started_at, "error", settings, error=message)
-            update_scheduler_state(last_error=message)
+            with SCHEDULER_LOCK:
+                consecutive_errors = int(SCHEDULER_STATE.get("consecutive_errors") or 0) + 1
+            update_scheduler_state(last_error=message, consecutive_errors=consecutive_errors)
+            SCHEDULER_LOGGER.exception(
+                "Scheduler run failed (consecutive_errors=%s)", consecutive_errors
+            )
+            if consecutive_errors >= ALERT_CONSECUTIVE_ERROR_THRESHOLD:
+                write_scheduler_alert(
+                    f"Scheduler run failed {consecutive_errors} times in a row. Latest error: {message}"
+                )
         interval_seconds = max(60, int(settings["interval_minutes"]) * 60)
         next_run = datetime.now(timezone.utc) + timedelta(seconds=interval_seconds)
         update_scheduler_state(running=False, next_run_at=next_run.isoformat())

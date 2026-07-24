@@ -3172,6 +3172,26 @@ class InvestmentHandler(BaseHTTPRequestHandler):
             json_response(self, stop_scheduler())
             return
 
+        if parsed.path == "/api/scheduler/runs":
+            params = parse_qs(parsed.query)
+            limit_value = safe_float(params.get("limit", ["50"])[0])
+            limit = max(1, min(int(limit_value) if limit_value else 50, 500))
+            status_filter = params.get("status", [""])[0].strip() or None
+            with db_connect() as conn:
+                rows = conn.execute(
+                    """
+                    SELECT id, started_at, finished_at, status, interval_minutes, batch_size,
+                           refresh_minutes, min_priority, asset_type, scope, scan_run_id, error
+                    FROM scheduler_runs
+                    WHERE (? IS NULL OR status = ?)
+                    ORDER BY id DESC
+                    LIMIT ?
+                    """,
+                    (status_filter, status_filter, limit),
+                ).fetchall()
+            json_response(self, {"runs": [dict(row) for row in rows], "count": len(rows)})
+            return
+
         if parsed.path == "/api/recommendations/daily-log":
             params = parse_qs(parsed.query)
             force = params.get("force", ["0"])[0].strip().lower() in {"1", "true", "yes"}

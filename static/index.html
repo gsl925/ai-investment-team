@@ -487,6 +487,20 @@
       font-size: 12px;
       line-height: 1.45;
     }
+    .scheduler-alert-banner {
+      color: var(--bad);
+      background: #fdeaea;
+      border: 1px solid var(--bad);
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-top: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.5;
+    }
+    .scheduler-alert-banner[hidden] {
+      display: none;
+    }
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -903,6 +917,7 @@
         <div class="backtest-head">
           <h2>最新投研進度</h2>
           <div id="latestMeta" class="monitor-meta">讀取背景輪巡與最新推薦中...</div>
+          <div id="latestAlertBanner" class="scheduler-alert-banner" hidden></div>
           <button id="aegisRefresh" class="secondary">刷新 Aegis 快照</button>
           <button id="dailyRecommend">執行每日推薦</button>
         </div>
@@ -1016,6 +1031,7 @@
         <div class="backtest-head">
           <h2>背景自動掃描</h2>
           <div id="schedulerMeta" class="monitor-meta">尚未啟動背景掃描。</div>
+          <div id="schedulerAlertBanner" class="scheduler-alert-banner" hidden></div>
         </div>
         <div class="scan-controls">
           <label class="control">
@@ -1284,6 +1300,7 @@
   <script>
     const symbolsInput = document.querySelector("#symbols");
     const latestMeta = document.querySelector("#latestMeta");
+    const latestAlertBanner = document.querySelector("#latestAlertBanner");
     const latestHealth = document.querySelector("#latestHealth");
     const dataHealthMeta = document.querySelector("#dataHealthMeta");
     const dataHealthSummary = document.querySelector("#dataHealthSummary");
@@ -1315,6 +1332,7 @@
     const scanResults = document.querySelector("#scanResults");
     const scanMeta = document.querySelector("#scanMeta");
     const schedulerMeta = document.querySelector("#schedulerMeta");
+    const schedulerAlertBanner = document.querySelector("#schedulerAlertBanner");
     const schedulerIntervalInput = document.querySelector("#schedulerInterval");
     const schedulerBatchInput = document.querySelector("#schedulerBatch");
     const schedulerRefreshInput = document.querySelector("#schedulerRefresh");
@@ -2707,8 +2725,23 @@
         const lastRun = scheduler.last_run_at ? new Date(scheduler.last_run_at).toLocaleString("zh-TW") : "-";
         const aegisCopied = aegisSnapshot.copied_at ? new Date(aegisSnapshot.copied_at).toLocaleString("zh-TW") : "-";
         latestMeta.textContent = `最後更新 ${new Date(payload.generated_at).toLocaleString("zh-TW")} · ${payload.disclaimer}`;
+        if (latestAlertBanner) {
+          if (scheduler.should_alert) {
+            const reasons = [];
+            if (scheduler.stale) reasons.push(`已 ${scheduler.overdue_seconds || 0} 秒沒有完成新一輪掃描`);
+            if ((scheduler.consecutive_errors || 0) >= 3) reasons.push(`連續失敗 ${scheduler.consecutive_errors} 次`);
+            latestAlertBanner.textContent = `⚠ 資料可能不是最新：${reasons.join("，")}。請檢查 logs/scheduler_alerts.log。`;
+            latestAlertBanner.hidden = false;
+          } else {
+            latestAlertBanner.hidden = true;
+          }
+        }
         latestHealth.innerHTML = [
-          renderProgressCard("輪巡健康", scheduler.healthy ? "正常" : "異常", `thread ${scheduler.thread_alive ? "alive" : "stopped"} · overdue ${scheduler.overdue_seconds || 0}s`),
+          renderProgressCard(
+            "輪巡健康",
+            scheduler.should_alert ? "⚠ 需注意" : (scheduler.healthy ? "正常" : "異常"),
+            `thread ${scheduler.thread_alive ? "alive" : "stopped"} · overdue ${scheduler.overdue_seconds || 0}s${scheduler.should_alert ? ` · 連續失敗 ${scheduler.consecutive_errors || 0} 次` : ""}`
+          ),
           renderProgressCard("下次輪巡", nextRun, `上次 ${lastRun}`),
           renderProgressCard("最新 Scan", latestScan.id ? `#${latestScan.id}` : "-", `掃 ${latestScan.scanned_count || 0} 檔 · 機會 ${latestScan.opportunity_count || 0}`),
           renderProgressCard("水池覆蓋", `${coverage.snapshot_coverage_percent || 0}%`, `${coverage.snapshot_symbol_count || 0}/${coverage.universe_count || 0} 檔有 snapshot`),
@@ -2982,6 +3015,18 @@
         : ` 健康：正常${status.thread_alive ? "，thread alive" : ""}。`;
       const restarted = status.restarted ? " 已自動重啟。" : "";
       schedulerMeta.textContent = `${state} · ${running} · 間隔 ${status.interval_minutes} 分鐘 · 每批 ${status.batch_size} 檔 · 快取 ${status.refresh_minutes} 分鐘。${persisted}${last}${next}${health}${restarted}${error}`;
+
+      if (schedulerAlertBanner) {
+        if (status.should_alert) {
+          const reasons = [];
+          if (status.stale) reasons.push(`已 ${status.overdue_seconds || 0} 秒沒有完成新一輪掃描`);
+          if ((status.consecutive_errors || 0) >= 3) reasons.push(`連續失敗 ${status.consecutive_errors} 次`);
+          schedulerAlertBanner.textContent = `⚠ 資料可能不是最新：${reasons.join("，")}。請檢查 logs/scheduler_alerts.log。`;
+          schedulerAlertBanner.hidden = false;
+        } else {
+          schedulerAlertBanner.hidden = true;
+        }
+      }
     }
 
     async function loadSchedulerStatus() {

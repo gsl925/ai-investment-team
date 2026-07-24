@@ -15,6 +15,7 @@ import requests
 
 ROOT = Path(__file__).resolve().parent
 STATIC_DIR = ROOT / "static"
+LOG_DIR = ROOT / "logs"
 DB_PATH = ROOT / "runtime_db" / "investment_live.db"
 AEGIS_SNAPSHOT_DB = ROOT / "external_data" / "aegis_trader_snapshot.db"
 AEGIS_SNAPSHOT_METADATA = ROOT / "external_data" / "aegis_trader_snapshot.metadata.json"
@@ -42,6 +43,7 @@ SCHEDULER_STATE: dict[str, Any] = {
     "run_count": 0,
     "cursor_offset": 0,
     "active_etf": None,
+    "consecutive_errors": 0,
 }
 WATCHLIST_LOCK = threading.Lock()
 WATCHLIST_THREAD: threading.Thread | None = None
