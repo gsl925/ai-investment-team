@@ -62,21 +62,37 @@ def write_scheduler_alert(message: str) -> None:
 
 def scheduler_health_fields(state: dict[str, Any], thread: threading.Thread | None) -> dict[str, Any]:
     thread_alive = bool(thread and thread.is_alive())
-    next_run = parse_utc_timestamp(state.get("next_run_at")) if state.get("next_run_at") else None
-    overdue_seconds = 0
-    if state.get("enabled") and next_run and not state.get("running"):
-        overdue_seconds = max(0, int((datetime.now(timezone.utc) - next_run).total_seconds()))
+    running = bool(state.get("running"))
     interval_seconds = max(60, int(state.get("interval_minutes") or 3) * 60)
-    # "Stale" is a looser, UI-facing threshold than the 90s used below to decide
-    # whether to auto-restart a dead thread — it's meant to answer "has this been
-    # stuck long enough that the last scan data on screen might not be current."
+    # "Stale" is a looser, UI-facing threshold than the 90s used below for the idle
+    # case — it's meant to answer "has this been stuck long enough that the last
+    # scan data on screen might not be current."
     stale_threshold_seconds = max(600, interval_seconds * 3)
+
+    overdue_seconds = 0
+    if state.get("enabled"):
+        if running:
+            # A run in progress has no timeout of its own, so without this branch a
+            # genuine hang/deadlock mid-run was invisible forever — the old code only
+            # ever computed overdue_seconds when NOT running, which is exactly the
+            # state a stuck run never leaves. Measure elapsed time since the run
+            # started against the same loose threshold as the idle case (not 90s),
+            # since ordinary runs can legitimately take over a minute.
+            last_run = parse_utc_timestamp(state.get("last_run_at")) if state.get("last_run_at") else None
+            if last_run:
+                overdue_seconds = max(0, int((datetime.now(timezone.utc) - last_run).total_seconds()))
+        else:
+            next_run = parse_utc_timestamp(state.get("next_run_at")) if state.get("next_run_at") else None
+            if next_run:
+                overdue_seconds = max(0, int((datetime.now(timezone.utc) - next_run).total_seconds()))
+
     consecutive_errors = int(state.get("consecutive_errors") or 0)
+    stuck_threshold = stale_threshold_seconds if running else 90
     stale = bool(state.get("enabled")) and overdue_seconds >= stale_threshold_seconds
     return {
         "thread_alive": thread_alive,
         "overdue_seconds": overdue_seconds,
-        "healthy": (not state.get("enabled")) or thread_alive and overdue_seconds < 90,
+        "healthy": (not state.get("enabled")) or (thread_alive and overdue_seconds < stuck_threshold),
         "stale": stale,
         "consecutive_errors": consecutive_errors,
         "should_alert": stale or consecutive_errors >= ALERT_CONSECUTIVE_ERROR_THRESHOLD,
