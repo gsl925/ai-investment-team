@@ -30,6 +30,7 @@ runtime_db/
 research_exports/
 
 # Internal dev logs (not for public repo)
+HISTORY.md
 PROGRESS.md
 *.log
 tmp_*.js
