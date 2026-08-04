@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent
-SOURCE_DB = Path(os.getenv("AEGIS_TRADER_DB", r"D:\_Personal\_Coding\_Python\AegisTrader\data\aegis_trader.db"))
+SOURCE_DB = Path(os.getenv("AEGIS_TRADER_DB", r"D:\_SideProject\AegisTrader\data\aegis_trader.db"))
 SNAPSHOT_DB = ROOT / "external_data" / "aegis_trader_snapshot.db"
 METADATA_PATH = SNAPSHOT_DB.with_suffix(".metadata.json")
 
