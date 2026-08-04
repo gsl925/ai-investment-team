@@ -16,6 +16,7 @@ import requests
 ROOT = Path(__file__).resolve().parent
 STATIC_DIR = ROOT / "static"
 LOG_DIR = ROOT / "logs"
+SETTINGS_PATH = ROOT / "settings.json"
 DB_PATH = ROOT / "runtime_db" / "investment_live.db"
 AEGIS_SNAPSHOT_DB = ROOT / "external_data" / "aegis_trader_snapshot.db"
 AEGIS_SNAPSHOT_METADATA = ROOT / "external_data" / "aegis_trader_snapshot.metadata.json"
@@ -80,6 +81,16 @@ HTTP = requests.Session()
 HTTP.trust_env = False
 TPEX_MAINBOARD_QUOTES_CACHE: list[dict[str, Any]] | None = None
 TPEX_ESB_QUOTES_CACHE: list[dict[str, Any]] | None = None
+
+
+def load_settings() -> dict[str, Any]:
+    """Read settings.json (gitignored, machine-local config). Returns {} if missing/invalid."""
+    if SETTINGS_PATH.exists():
+        try:
+            return json.loads(SETTINGS_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {}
 
 FACTOR_WEIGHTS = {
     "trend": 0.20,

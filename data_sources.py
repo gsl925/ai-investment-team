@@ -13,7 +13,7 @@ import requests
 
 from common import (
     HTTP, HTTP_TIMEOUT, NEWS_KEYWORDS, TAIPEI_TZ, YAHOO_HEADERS,
-    aegis_connect, classify_asset, db_connect, market_number,
+    aegis_connect, classify_asset, db_connect, load_settings, market_number,
     safe_float, taiwan_stock_id, yahoo_get, yahoo_get_query2,
 )
 from models import AegisFundamentals, Quote
@@ -666,11 +666,18 @@ def get_mops_news(stock_id: str, limit: int = 5) -> list[dict[str, str]]:
     return items
 
 
-MACRO_NEWS_QUERIES = {
+DEFAULT_MACRO_NEWS_QUERIES = {
     "fed_chair": "Kevin Warsh Federal Reserve",
     "trump": "Trump tariff",
     "treasury_secretary": "Scott Bessent Treasury",
 }
+
+
+def get_macro_news_queries() -> dict[str, str]:
+    """Macro news actor->query keywords, configurable via settings.json ({"macro_news": {"queries": {...}}})
+    without touching code. Falls back to DEFAULT_MACRO_NEWS_QUERIES if unset."""
+    queries = load_settings().get("macro_news", {}).get("queries")
+    return queries if queries else DEFAULT_MACRO_NEWS_QUERIES
 
 
 def get_macro_news(per_actor_limit: int = 4) -> list[dict[str, str]]:
@@ -681,7 +688,7 @@ def get_macro_news(per_actor_limit: int = 4) -> list[dict[str, str]]:
     This is lagging by nature — price moves first — so it feeds LLM narrative context only, not scoring.
     """
     combined: list[dict[str, str]] = []
-    for actor, query in MACRO_NEWS_QUERIES.items():
+    for actor, query in get_macro_news_queries().items():
         try:
             resp = HTTP.get(
                 "https://news.google.com/rss/search",
