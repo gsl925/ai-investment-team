@@ -1127,7 +1127,7 @@ def build_technical_agent_report(item: dict[str, Any]) -> dict[str, Any]:
     )
 
 
-def build_macro_news_report(item: dict[str, Any]) -> dict[str, Any]:
+def build_macro_news_report(item: dict[str, Any], macro_news: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     news = item.get("news", [])
     positive = sum(1 for row in news if row.get("sentiment") == "positive")
     negative = sum(1 for row in news if row.get("sentiment") == "negative")
@@ -1138,12 +1138,18 @@ def build_macro_news_report(item: dict[str, Any]) -> dict[str, Any]:
         f"波動佐證新聞候選：{len(catalyst)} 則。",
     ]
     bullets.extend([f"{row.get('source')}: {row.get('title')}" for row in news[:4]])
+    gaps = ["Reuters/SEC/公開資訊觀測站來源", "新聞發布時間與價格分鐘級比對"]
+    if macro_news:
+        bullets.append(f"宏觀事件新聞（Fed/川普/財長，僅供參考，屬滯後訊息不影響評分）：{len(macro_news)} 則。")
+        bullets.extend([f"[{row.get('actor')}] {row.get('source')}: {row.get('title')}" for row in macro_news[:4]])
+    else:
+        gaps.append("Fed/利率/美元指數資料")
     return report_section(
         "Macro & News Analyst Agent",
         "總經、產業與新聞事件",
         verdict,
         bullets,
-        ["Reuters/SEC/公開資訊觀測站來源", "新聞發布時間與價格分鐘級比對", "Fed/利率/美元指數資料"],
+        gaps,
     )
 
 
@@ -1365,20 +1371,26 @@ def _inject_llm_insights(reports: list[dict[str, Any]], insights: dict[str, str]
 def run_research_team(symbols: list[str], threshold_override: float | None = None) -> dict[str, Any]:
     from app import analyze_symbol, save_analysis_result, get_history  # circular dep break
     from llm_client import llm_enabled, generate_research_insights
+    from data_sources import get_macro_news
     started = time.time()
     results = []
     errors = []
     use_llm = llm_enabled()
+    try:
+        macro_news = get_macro_news()
+    except Exception:
+        macro_news = []
     for symbol in symbols[:8]:
         try:
             item = analyze_symbol(symbol, threshold_override)
             snapshot_id = save_analysis_result(item)
             item["snapshot_id"] = snapshot_id
+            item["macro_news"] = macro_news
             history = get_history(item["symbol"], 10)
             reports = [
                 build_data_retrieval_report(item, history),
                 build_technical_agent_report(item),
-                build_macro_news_report(item),
+                build_macro_news_report(item, macro_news),
                 build_flow_agent_report(item),
                 build_risk_report(item),
             ]

@@ -195,6 +195,12 @@ def _build_context(item: dict[str, Any], reports: list[dict[str, Any]]) -> str:
         for n in news:
             lines.append(f"  [{n.get('sentiment', '')}] {n.get('source', '')}：{n.get('title', '')}")
 
+    macro_news = item.get("macro_news") or []
+    if macro_news:
+        lines += ["", "【宏觀新聞（Fed/川普/財長，僅供參考——這是滯後訊息，股價通常已先行動，不可當成領先指標）】"]
+        for n in macro_news[:6]:
+            lines.append(f"  [{n.get('actor', '')}] {n.get('source', '')}：{n.get('title', '')}")
+
     lines += ["", "【規則式 Agent 結論摘要】"]
     agent_label_map = {
         "Data Retrieval Agent": "data_retrieval",

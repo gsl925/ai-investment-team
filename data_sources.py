@@ -4,6 +4,7 @@ import re
 import sqlite3
 import statistics
 import time
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import quote_plus
@@ -663,6 +664,51 @@ def get_mops_news(stock_id: str, limit: int = 5) -> list[dict[str, str]]:
     except Exception:
         pass
     return items
+
+
+MACRO_NEWS_QUERIES = {
+    "fed_chair": "Kevin Warsh Federal Reserve",
+    "trump": "Trump tariff",
+    "treasury_secretary": "Scott Bessent Treasury",
+}
+
+
+def get_macro_news(per_actor_limit: int = 4) -> list[dict[str, str]]:
+    """Fetch macro/political news likely to move broad market sentiment (Fed chair, president, Treasury secretary).
+
+    Uses Google News RSS keyword search rather than Yahoo Finance's search endpoint, since that endpoint
+    only returns news tied to matching tickers/quotes and is unusable for pure keyword queries.
+    This is lagging by nature — price moves first — so it feeds LLM narrative context only, not scoring.
+    """
+    combined: list[dict[str, str]] = []
+    for actor, query in MACRO_NEWS_QUERIES.items():
+        try:
+            resp = HTTP.get(
+                "https://news.google.com/rss/search",
+                params={"q": query, "hl": "en-US", "gl": "US", "ceid": "US:en"},
+                headers=YAHOO_HEADERS,
+                timeout=HTTP_TIMEOUT,
+            )
+            resp.raise_for_status()
+            root = ET.fromstring(resp.content)
+        except Exception:
+            continue
+        for el in root.findall("./channel/item")[:per_actor_limit]:
+            raw_title = (el.findtext("title") or "").strip()
+            source_el = el.find("source")
+            source = (source_el.text or "").strip() if source_el is not None else ""
+            title = re.sub(rf"\s*-\s*{re.escape(source)}$", "", raw_title) if source else raw_title
+            combined.append(
+                {
+                    "title": title,
+                    "link": (el.findtext("link") or "").strip(),
+                    "published": (el.findtext("pubDate") or "").strip(),
+                    "source": source or "Google News",
+                    "sentiment": news_sentiment(title),
+                    "actor": actor,
+                }
+            )
+    return dedupe_news(combined)
 
 
 def get_taiwan_stock_news(symbol: str, name: str, limit: int = 8) -> list[dict[str, str]]:
